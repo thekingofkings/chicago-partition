@@ -24,14 +24,15 @@ class Tract:
     @classmethod
     def createAllTractObjects(cls, fname="data/Census-Tracts-2010/chicago-tract"):
         cls.sf = shapefile.Reader(fname)
-        cls.tracts = {}
+        tracts = {}
         shps = cls.sf.shapes()
         for idx, shp in enumerate(shps):
             rec = cls.sf.record(idx)
             tid = int(rec[2])
             trt = Tract(shp, rec)
-            cls.tracts[tid] = trt
-        return cls.tracts
+            tracts[tid] = trt
+        cls.tracts = tracts
+        return tracts
 
 
 
@@ -41,6 +42,7 @@ def compare_tract_shapefiles():
     trts1 = Tract.createAllTractObjects()
     trts2 = Tract.createAllTractObjects("data/chicago-shp-2010-gps/chicago_tract_wgs84")
     exactly_same = True
+    print len(trts1), len(trts2)
     for tid in trts1:
         if tid not in trts2:
             exactly_same = False
@@ -66,8 +68,9 @@ def compare_tract_shapefiles():
         
     assert exactly_same == True
     print "Good news: two shapfiles are mostly identical."
+    return trts1, trts2
     
     
 if __name__ == '__main__':
-    compare_tract_shapefiles()
+    t1, t2 = compare_tract_shapefiles()
 #    trts1 = Tract.createAllTractObjects()
