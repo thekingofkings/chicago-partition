@@ -28,7 +28,7 @@ class Tract:
         shps = cls.sf.shapes()
         for idx, shp in enumerate(shps):
             rec = cls.sf.record(idx)
-            tid = int(rec[2])
+            tid = rec[5]
             trt = Tract(shp, rec)
             tracts[tid] = trt
         cls.tracts = tracts
@@ -72,5 +72,5 @@ def compare_tract_shapefiles():
     
     
 if __name__ == '__main__':
-    t1, t2 = compare_tract_shapefiles()
-#    trts1 = Tract.createAllTractObjects()
+#    t1, t2 = compare_tract_shapefiles()
+    trts1 = Tract.createAllTractObjects()
