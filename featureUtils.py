@@ -10,6 +10,7 @@ Generate tract-level features for regressions
 
 
 from openpyxl import load_workbook
+import pandas as pd
 
 
 def retrieve_corina_features():
@@ -41,8 +42,28 @@ def retrieve_income_features():
     """
     wb = load_workbook('data/Household Income by Race and Census Tract and Community Area.xlsx')
     ws = wb.active
-    tractIDs = [cell.value for cell in ws['h'] if cell.value != None][1:]
-    return tractIDs
+    tractColumn = [cell.value for cell in ws['h']]
+    tractIDs = ["17031{}".format(c) for c in tractColumn if c != None][1:]
+    dataColumns = ws['K1:DU890']
+    
+    header = []
+    header_description = []
+    income_features = []
+    for idx, tractID in enumerate(tractColumn):
+        if idx == 0:
+            header = [cell.value for cell in dataColumns[idx]]
+        elif idx == 1:
+            header_description = [cell.value for cell in dataColumns[idx]]
+        elif idx == 2:
+            header_description = ["{} {}".format(header_description[i], cell.value)
+                                  for i, cell in enumerate(dataColumns[idx])]
+        else:
+            if tractID != None:    
+                row = [cell.value for cell in dataColumns[idx]]
+                income_features.append(row)
+    featureDF = pd.DataFrame(data=income_features, index=tractIDs, columns=header)
+    header_decode = dict(zip(header, header_description))
+    return featureDF, header_decode
 
 
 
@@ -81,4 +102,5 @@ def validate_region_keys():
             print s
 
 if __name__ == '__main__':
-    validate_region_keys()
+#    validate_region_keys()
+    f,d = retrieve_income_features()
