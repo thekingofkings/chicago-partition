@@ -7,6 +7,7 @@ Instantiate tract boundary from shapefile
 
 import matplotlib
 matplotlib.rc('pdf', fonttype=42)
+import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
 
@@ -33,6 +34,18 @@ class Tract:
             tracts[tid] = trt
         cls.tracts = tracts
         return tracts
+    
+    @classmethod
+    def visualizeTracts(cls):
+        from descartes import PolygonPatch
+        f = plt.figure(figsize=(6,6))
+        ax = f.gca()
+        for k, t in cls.tracts.items():
+            ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
+        ax.axis("scaled")
+        ax.axis("off")
+        plt.tight_layout()
+        plt.savefig("tracts.png")
 
 
 
@@ -74,3 +87,4 @@ def compare_tract_shapefiles():
 if __name__ == '__main__':
 #    t1, t2 = compare_tract_shapefiles()
     trts1 = Tract.createAllTractObjects()
+    Tract.visualizeTracts()
