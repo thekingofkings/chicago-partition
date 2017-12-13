@@ -32,8 +32,8 @@ class CommunityArea:
             initialize the boundary and features of each CA.
         """
         self.polygon = cascaded_union([e.polygon for e in self.tracts.values()])
-        tract_income = CommunityArea.income_raw.loc[ self.tracts.keys() ]
-        self.income = tract_income.sum(axis=0)
+        tract_features = CommunityArea.features_raw.loc[ self.tracts.keys() ]
+        self.features = tract_features.sum(axis=0)
         
         
         
@@ -56,14 +56,13 @@ class CommunityArea:
             else:
                 CAs[trct.CA].addTract(tID, trct)
         
-        # initialize income features
-        from featureUtils import retrieve_income_features
-        cls.income_raw, cls.income_description = retrieve_income_features()
-        income_ca = {}
+        # initialize features
+        cls.features_raw = Tract.features if hasattr(Tract, "features") else Tract.generateFeatures()
+        features_ca = {}
         for ca in CAs.values():
             ca.initializeField()
-            income_ca[ca.id] = ca.income
-        cls.income = pd.DataFrame.from_dict(data=income_ca, orient="index")
+            features_ca[ca.id] = ca.features
+        cls.features = pd.DataFrame.from_dict(data=features_ca, orient="index")
         cls.CAs = CAs
         return CAs
             

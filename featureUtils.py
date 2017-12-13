@@ -43,12 +43,12 @@ def retrieve_income_features():
     wb = load_workbook('data/Household Income by Race and Census Tract and Community Area.xlsx')
     ws = wb.active
     tractColumn = [cell.value for cell in ws['h']]
-    tractIDs = ["17031{}".format(c) for c in tractColumn if c != None][1:]
     dataColumns = ws['K1:DU890']
     
     header = []
     header_description = []
     income_features = []
+    tractIDs = []
     for idx, tractID in enumerate(tractColumn):
         if idx == 0:
             header = [cell.value for cell in dataColumns[idx]]
@@ -58,13 +58,25 @@ def retrieve_income_features():
             header_description = ["{} {}".format(header_description[i], cell.value)
                                   for i, cell in enumerate(dataColumns[idx])]
         else:
-            if tractID != None:    
+            if tractID != None:
+                tractIDs.append(int("17031"+tractID))
                 row = [cell.value for cell in dataColumns[idx]]
                 income_features.append(row)
     featureDF = pd.DataFrame(data=income_features, index=tractIDs, columns=header)
     header_decode = dict(zip(header, header_description))
     return featureDF, header_decode
 
+
+def retrieve_crime_count(year=2010):
+    """
+    Output:
+        Dataframe of crime counts in various categoires. The index type is integer.
+        The column name is crime type
+    """
+    Y = pd.read_csv("data/chicago-crime-tract-level-{0}.csv".format(year),
+                    header=0, index_col=0)
+    return Y
+        
 
 
 def validate_region_keys():
@@ -104,3 +116,4 @@ def validate_region_keys():
 if __name__ == '__main__':
     validate_region_keys()
     f,d = retrieve_income_features()
+    y = retrieve_crime_count()

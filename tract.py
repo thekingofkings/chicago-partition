@@ -10,6 +10,7 @@ matplotlib.rc('pdf', fonttype=42)
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
+from featureUtils import retrieve_crime_count, retrieve_income_features
 
 
 class Tract:
@@ -31,7 +32,7 @@ class Tract:
         shps = cls.sf.shapes()
         for idx, shp in enumerate(shps):
             rec = cls.sf.record(idx)
-            tid = "".join([rec[0], rec[1], rec[2]])
+            tid = int("".join([rec[0], rec[1], rec[2]]))
             trt = Tract(shp, rec)
             tracts[tid] = trt
         cls.tracts = tracts
@@ -50,6 +51,18 @@ class Tract:
         ax.axis("off")
         plt.tight_layout()
         plt.savefig("tracts.png")
+        
+    @classmethod
+    def generateFeatures(cls):
+        """
+        Generate one feature matrices for all tracts.
+        Output:
+            Tract.features - a dataframe of features. The header is feature name.
+        """
+        f, cls.income_description = retrieve_income_features()
+        y = retrieve_crime_count()
+        cls.features = f.join(y)
+        return cls.features
 
 
 
