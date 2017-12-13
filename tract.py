@@ -21,26 +21,30 @@ class Tract:
         self.count = {'total': 0} # type: value
         if rec != None:
             self.CA = int(rec[6])
+        else:
+            self.CA = None
             
     @classmethod
-    def createAllTractObjects(cls, fname="data/Census-Tracts-2010/chicago-tract"):
+    def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract"):
         cls.sf = shapefile.Reader(fname)
         tracts = {}
         shps = cls.sf.shapes()
         for idx, shp in enumerate(shps):
             rec = cls.sf.record(idx)
-            tid = rec[5]
+            tid = "".join([rec[0], rec[1], rec[2]])
             trt = Tract(shp, rec)
             tracts[tid] = trt
         cls.tracts = tracts
         return tracts
     
     @classmethod
-    def visualizeTracts(cls):
+    def visualizeTracts(cls, tracts = None):
+        if tracts == None:
+            tracts = cls.tracts
         from descartes import PolygonPatch
         f = plt.figure(figsize=(6,6))
         ax = f.gca()
-        for k, t in cls.tracts.items():
+        for k, t in tracts.items():
             ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
         ax.axis("scaled")
         ax.axis("off")
@@ -52,8 +56,8 @@ class Tract:
 def compare_tract_shapefiles():
     """There are two version of tract level shapfiles.
     Are they the same?"""
-    trts1 = Tract.createAllTractObjects()
-    trts2 = Tract.createAllTractObjects("data/chicago-shp-2010-gps/chicago_tract_wgs84")
+    trts1 = Tract.createAllTracts()
+    trts2 = Tract.createAllTracts("data/chicago-shp-2010-gps/chicago_tract_wgs84")
     exactly_same = True
     print len(trts1), len(trts2)
     for tid in trts1:
@@ -85,6 +89,6 @@ def compare_tract_shapefiles():
     
     
 if __name__ == '__main__':
-#    t1, t2 = compare_tract_shapefiles()
-    trts1 = Tract.createAllTractObjects()
+    t1, t2 = compare_tract_shapefiles()
+    trts1 = Tract.createAllTracts()
     Tract.visualizeTracts()

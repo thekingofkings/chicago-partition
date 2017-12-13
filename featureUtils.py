@@ -78,14 +78,14 @@ def validate_region_keys():
     Further, are there any missing tracts in the shapefile? - yes. there are 8
     """
     from tract import Tract
-    tracts = Tract.createAllTractObjects()
+    tracts = Tract.createAllTracts()
     shp_keys = set(tracts.keys())
     
     fields_dsp, st = retrieve_corina_features() # 2000 census data
     corina_keys = set(st.keys())
     
-    r = retrieve_income_features()  # 2010 census data
-    census2010_keys = set(["17031{}".format(e) for e in r])
+    f, d = retrieve_income_features()  # 2010 census data
+    census2010_keys = set(f.index)
     
     print "Compare the tract IDs between shapefile and 2000 census"
     print "len(shp) {}, len(2000 census) {}".format(len(shp_keys), len(corina_keys))
@@ -102,5 +102,5 @@ def validate_region_keys():
             print s
 
 if __name__ == '__main__':
-#    validate_region_keys()
+    validate_region_keys()
     f,d = retrieve_income_features()
