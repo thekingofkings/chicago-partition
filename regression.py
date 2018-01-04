@@ -1,0 +1,56 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec 13 16:50:32 2017
+
+@author: kok
+
+Negative Binomial (NB) regression model.
+"""
+
+import numpy as np
+import statsmodels.api as sm
+from sklearn.model_selection import LeaveOneOut
+from sklearn import preprocessing
+
+def NB_regression_evaluation(df, featureNames, targetName):
+    """
+    Use python statsmodels lib to evaluate NB regression.
+    The evaluation setting is leave-one-out.
+    
+    Input:
+        The pandas.DataFrame of CA level features
+    Output:
+        The mean error of multi-rounds leave-one-out.
+    """
+    errors = []
+    loo = LeaveOneOut()
+    features = df[featureNames]
+#    standardScaler = preprocessing.StandardScaler()
+#    features = standardScaler.fit_transform(features_raw)
+    crimeRate = df[targetName]
+    for train_idx, test_idx in loo.split(df):
+        X_train, y_train = features.iloc[train_idx], crimeRate.iloc[train_idx]
+        X_test, y_test = features.iloc[test_idx], crimeRate.iloc[test_idx]
+        nbmodel = sm.GLM(y_train, X_train, family=sm.families.NegativeBinomial())
+        model_res = nbmodel.fit()
+        y_pred = nbmodel.predict(model_res.params, X_test)
+        errors.append(abs(y_pred - y_test))
+    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(df[targetName])
+
+
+def test_NB_regression():
+    from tract import Tract
+    from communityArea import CommunityArea
+    Tract.createAllTracts()
+    CommunityArea.createAllCAs(Tract.tracts)
+    featureName = Tract.income_description.keys()[:20]
+    targetName = 'total'
+    print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
+    
+    
+if __name__ == '__main__':
+    test_NB_regression()
+    
+    
+    

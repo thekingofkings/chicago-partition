@@ -102,6 +102,6 @@ def compare_tract_shapefiles():
     
     
 if __name__ == '__main__':
-    t1, t2 = compare_tract_shapefiles()
+#    t1, t2 = compare_tract_shapefiles()
     trts1 = Tract.createAllTracts()
     Tract.visualizeTracts()
