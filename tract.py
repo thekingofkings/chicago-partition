@@ -15,8 +15,9 @@ from featureUtils import retrieve_crime_count, retrieve_income_features
 
 class Tract:
     
-    def __init__(self, shp, rec=None):
+    def __init__(self, tid, shp, rec=None):
         """Build one tract from the shapefile._Shape object"""
+        self.id = tid
         self.bbox = box(*shp.bbox)
         self.polygon = Polygon(shp.points)
         self.centroid = (self.polygon.centroid.x, self.polygon.centroid.y)
@@ -37,9 +38,11 @@ class Tract:
         for idx, shp in enumerate(shps):
             rec = cls.sf.record(idx)
             tid = int("".join([rec[0], rec[1], rec[2]]))
-            trt = Tract(shp, rec)
+            trt = Tract(tid, shp, rec)
             tracts[tid] = trt
         cls.tracts = tracts
+        # calculate spatial adjacency graph
+        cls.spatialAdjacency()
         return tracts
     
     @classmethod
@@ -82,15 +85,35 @@ class Tract:
                     if intersec.geom_type != 'Point':
                         focalTract.neighbors.append(otherTract)
         # calculate whether the tract is on CA boundary
+        cls.boundarySet = set()
         for k, t in cls.tracts.items():
             for n in t.neighbors:
                 if t.CA != n.CA:
                     t.onEdge = True
+                    cls.boundarySet.add(t)
+                    
+    @classmethod
+    def updateBoundarySet(cls, tract):
+        """
+        Update bounary set for next round sampling
+        """
+        tracts_check = [tract] + tract.neighbors
+        for t in tracts_check:
+            onEdge = False
+            for n in t.neighbors:
+                if t.CA != n.CA:
+                    onEdge = True
+                    break
+            if not onEdge:
+                t.onEdge = False
+                cls.boundarySet.remove(t)
+            else:
+                t.onEdge = True
+                cls.boundarySet.add(t)
 
     @classmethod
     def visualizeTractsAdjacency(cls):
         from matplotlib.lines import Line2D
-        cls.spatialAdjacency()
         tracts = cls.tracts
         f = plt.figure(figsize=(16,16))
         ax = f.gca()

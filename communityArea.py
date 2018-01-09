@@ -36,7 +36,6 @@ class CommunityArea:
         self.features = tract_features.sum(axis=0)
         
         
-        
     @classmethod
     def createAllCAs(cls, tracts):
         """
@@ -58,14 +57,33 @@ class CommunityArea:
         
         # initialize features
         cls.features_raw = Tract.features if hasattr(Tract, "features") else Tract.generateFeatures()
-        features_ca = {}
+        cls.features_ca_dict = {}
         for ca in CAs.values():
             ca.initializeField()
-            features_ca[ca.id] = ca.features
-        cls.features = pd.DataFrame.from_dict(data=features_ca, orient="index")
+            cls.features_ca_dict[ca.id] = ca.features
+        cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient="index")
         cls.CAs = CAs
         return CAs
-            
+
+
+    @classmethod
+    def updateCAFeatures(cls, tract, prv_CAid, new_CAid):
+        """
+        Update the CA features, when one tract is flipped from prv_CA to new_CA.
+        """
+        prv_CA = cls.CAs[prv_CAid]
+        del prv_CA.tracts[tract.id]
+        prv_CA.initializeField()
+        cls.features_ca_dict[prv_CAid] = prv_CA.features
+        
+        new_CA = cls.CAs[new_CAid]
+        new_CA.tracts[tract.id] = tract
+        new_CA.initializeField()
+        cls.features_ca_dict[new_CAid] = new_CA.features
+        
+        cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient='index')
+        
+
         
     @classmethod
     def visualizeCAs(cls, CAs=None):
