@@ -42,11 +42,12 @@ if __name__ == '__main__':
         # sample a CA assignment to flip
         new_caid = t_flip_candidate.pop() if len(t_flip_candidate) == 1 else random.sample(t_flip_candidate, 1)[0]
         prv_caid = t.CA
-        t.CA = new_caid
-        if len(CommunityArea.CAs[new_caid].tracts) == CA_maxsize:
+        if len(CommunityArea.CAs[new_caid].tracts) > CA_maxsize  \
+            or len(CommunityArea.CAs[prv_caid].tracts) <= 1:
             continue
         
         # update communities features for evaluation
+        t.CA = new_caid
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         
         # evaluate new partition
