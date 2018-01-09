@@ -19,11 +19,15 @@ class Tract:
         """Build one tract from the shapefile._Shape object"""
         self.bbox = box(*shp.bbox)
         self.polygon = Polygon(shp.points)
+        self.centroid = (self.polygon.centroid.x, self.polygon.centroid.y)
         self.count = {'total': 0} # type: value
         if rec != None:
             self.CA = int(rec[6])
         else:
             self.CA = None
+        # for adjacency information
+        self.neighbors = []
+        self.onEdge = False
             
     @classmethod
     def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract"):
@@ -43,7 +47,7 @@ class Tract:
         if tracts == None:
             tracts = cls.tracts
         from descartes import PolygonPatch
-        f = plt.figure(figsize=(6,6))
+        f = plt.figure(figsize=(16,16))
         ax = f.gca()
         for k, t in tracts.items():
             ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
@@ -64,7 +68,40 @@ class Tract:
         cls.features = f.join(y)
         return cls.features
 
+    @classmethod
+    def spatialAdjacency(cls):
+        """
+        Calculate the adjacent tracts.
+        
+        Notice that `shapely.touches` return True if there is one point touch.
+        """
+        for focalKey, focalTract in cls.tracts.items():
+            for otherKey, otherTract in cls.tracts.items():
+                if otherKey != focalKey and focalTract.polygon.touches(otherTract.polygon):
+                    intersec = focalTract.polygon.intersection(otherTract.polygon)
+                    if intersec.geom_type != 'Point':
+                        focalTract.neighbors.append(otherTract)
+        # calculate whether the tract is on CA boundary
+        for k, t in cls.tracts.items():
+            for n in t.neighbors:
+                if t.CA != n.CA:
+                    t.onEdge = True
 
+    @classmethod
+    def visualizeTractsAdjacency(cls):
+        from matplotlib.lines import Line2D
+        cls.spatialAdjacency()
+        tracts = cls.tracts
+        f = plt.figure(figsize=(16,16))
+        ax = f.gca()
+        for k, t in tracts.items():
+            for n in t.neighbors:
+                ax.add_line(Line2D(*zip(t.centroid, n.centroid)))
+        ax.axis('scaled')
+        ax.axis('off')
+        plt.tight_layout()
+        plt.savefig("adjacency.png")
+        
 
 def compare_tract_shapefiles():
     """There are two version of tract level shapfiles.
@@ -105,3 +142,4 @@ if __name__ == '__main__':
 #    t1, t2 = compare_tract_shapefiles()
     trts1 = Tract.createAllTracts()
     Tract.visualizeTracts()
+    Tract.visualizeTractsAdjacency()
