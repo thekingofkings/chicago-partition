@@ -86,7 +86,7 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, CAs=None):
+    def visualizeCAs(cls, CAs=None, fname="CAs.png"):
         if CAs == None:
             CAs = cls.CAs
         from descartes import PolygonPatch
@@ -97,7 +97,7 @@ class CommunityArea:
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
-        plt.savefig("CAs.png")
+        plt.savefig(fname)
         
 
 
