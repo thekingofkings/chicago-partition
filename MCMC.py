@@ -10,7 +10,7 @@ MCMC procedure to find the best partition
 
 from tract import Tract
 from communityArea import CommunityArea
-from regression import Linear_regression_evaluation
+from regression import Linear_regression_evaluation, Linear_regression_training
 import random
 from math import exp
 import numpy as np
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     M = 100
     T = 10
     CA_maxsize = 30
-    mae1, std_ae1, mre1 = Linear_regression_evaluation(CommunityArea.features, featureName, targetName)
+    mae1, std_ae1, mre1 = Linear_regression_training(CommunityArea.features, featureName, targetName)
     
     print "# sampling"
     cnt = 0
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         
         # evaluate new partition
-        mae2, std_ae2, mre2 = Linear_regression_evaluation(CommunityArea.features, featureName, targetName)
+        mae2, std_ae2, mre2 = Linear_regression_training(CommunityArea.features, featureName, targetName)
         f1 = exp(- mae1 / T)
         f2 = exp(- mae2 / T)
         gamma = f2 / f1
@@ -81,7 +81,7 @@ if __name__ == '__main__':
                 # when mae converges
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 break
-            if iter_cnt % 100 == 0:
+            if iter_cnt % 500 == 0:
                 CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
         else:
             # restore communities features

@@ -53,7 +53,7 @@ def test_NB_regression():
 
 def Linear_regression_evaluation(df, featureNames, targetName):
     """
-    Use python sklearn linear_model to evaluate LR model.
+    Use sklearn linear_model to evaluate LR model (with leave one out).
     """
     errors = []
     loo = LeaveOneOut()
@@ -69,6 +69,18 @@ def Linear_regression_evaluation(df, featureNames, targetName):
     return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
 
 
+def Linear_regression_training(df, featureNames, targetName):
+    """
+    Use sklearn linear_model to train LR model (training to find best partition)
+    """
+    crimeRate = df[targetName]
+    lrmodel = linear_model.LinearRegression()
+    lr_res = lrmodel.fit(df[featureNames], crimeRate)
+    y_pred = lr_res.predict(df[featureNames])
+    errors = abs(y_pred - crimeRate)
+    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
+
+
 def test_LR_regression():
     from tract import Tract
     from communityArea import CommunityArea
@@ -77,7 +89,8 @@ def test_LR_regression():
     featureName = Tract.income_description.keys()[:5]
     targetName = 'total'
     print Linear_regression_evaluation(CommunityArea.features, featureName, targetName)
-
+    print Linear_regression_training(CommunityArea.features, featureName, targetName)
+    
     
 if __name__ == '__main__':
 #    test_NB_regression()
