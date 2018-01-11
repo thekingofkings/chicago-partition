@@ -18,7 +18,9 @@ from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
 
 
-if __name__ == '__main__':
+def initialize():
+    global M, T, featureName, targetName, CA_maxsize, mae1, cnt, iter_cnt, \
+        mae_series, mae_index
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
@@ -28,18 +30,45 @@ if __name__ == '__main__':
     M = 100
     T = 10
     CA_maxsize = 30
-    mae1, std_ae1, mre1 = Linear_regression_training(CommunityArea.features, featureName, targetName)
-    
-    print "# sampling"
+    mae1, _, _ = Linear_regression_training(CommunityArea.features, featureName, targetName)
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
     mae_index = [0]
+
+
+def F(ae):
+    return exp(-ae / T)
+
+
+def convergence_plot():
+    plt.figure()
+    plt.subplot(1,2,1)
+    plt.plot(mae_index, mae_series)
+    plt.xlabel("sample index")
+    plt.ylabel("Training errors")
+    
+    plt.subplot(1,2,2)
+    plt.plot(mae_series)
+    plt.xlabel("iterations")
+    plt.ylabel("Training errors")
+
+
+def MCMC_sampling(sample_func, update_sample_weight_func):
+    """
+    MCMC search for optimal solution.
+    Input:
+        sample_func is the sample proposal method.
+    Output:
+        Optimal partition plot and training error decreasing trend.
+    """
+    global mae1, cnt, iter_cnt
+    print "# sampling"
     while cnt <= M:
         cnt += 1
         iter_cnt += 1
         # sample a boundary tract
-        t = random.sample(Tract.boundarySet, 1)[0]
+        t = sample_func(Tract.boundarySet, 1)[0]
         t_flip_candidate = set()
         for n in t.neighbors:
             if n.CA != t.CA and n.CA not in t_flip_candidate:
@@ -64,23 +93,22 @@ if __name__ == '__main__':
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         
         # evaluate new partition
-        mae2, std_ae2, mre2 = Linear_regression_training(CommunityArea.features, featureName, targetName)
-        f1 = exp(- mae1 / T)
-        f2 = exp(- mae2 / T)
-        gamma = f2 / f1
+        mae2, _, _ = Linear_regression_training(CommunityArea.features, featureName, targetName)
+        update_sample_weight_func(mae1, mae2, t)
+        gamma = F(mae2) / F(mae1)
         sr = random.random()
         
         if sr < gamma: # made progress
             mae_series.append(mae2)
             mae_index.append(iter_cnt)
             print "{} --> {} in {} steps".format(mae1, mae2, cnt)
-            mae1, std_ae1, mre1 = mae2, std_ae2, mre2
+            mae1 = mae2
         
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 3:
+            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 20:
                 # when mae converges
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 break
@@ -92,7 +120,19 @@ if __name__ == '__main__':
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
 
-    f = plt.figure()
-    plt.plot(mae_series)
-    plt.xlabel("iterations")
-    plt.ylabel("Training errors")
+def naive_MCMC():
+    initialize()
+    MCMC_sampling(random.sample, lambda ae1, ae2, t : 1)
+    convergence_plot()
+
+
+def adaptive_mcmc():
+    initialize()
+    tract_weight = np.ones(len(Tract.tracts))
+    pass
+    convergence_plot()
+
+
+if __name__ == '__main__':
+    naive_MCMC()
+
