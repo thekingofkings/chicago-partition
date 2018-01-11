@@ -10,11 +10,11 @@ matplotlib.rc('pdf', fonttype=42)
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
-from featureUtils import retrieve_crime_count, retrieve_income_features
+from feature_utils import retrieve_crime_count, retrieve_income_features
 
 
 class Tract:
-    
+
     def __init__(self, tid, shp, rec=None):
         """Build one tract from the shapefile._Shape object"""
         self.id = tid
@@ -29,7 +29,7 @@ class Tract:
         # for adjacency information
         self.neighbors = []
         self.onEdge = False
-            
+
     @classmethod
     def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract"):
         cls.sf = shapefile.Reader(fname)
@@ -44,21 +44,21 @@ class Tract:
         # calculate spatial adjacency graph
         cls.spatialAdjacency()
         return tracts
-    
+
     @classmethod
-    def visualizeTracts(cls, tracts = None):
+    def visualizeTracts(cls, tracts=None):
         if tracts == None:
             tracts = cls.tracts
         from descartes import PolygonPatch
-        f = plt.figure(figsize=(16,16))
+        f = plt.figure(figsize=(16, 16))
         ax = f.gca()
-        for k, t in tracts.items():
+        for _, t in tracts.items():
             ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
         plt.savefig("tracts.png")
-        
+
     @classmethod
     def generateFeatures(cls):
         """
@@ -75,7 +75,7 @@ class Tract:
     def spatialAdjacency(cls):
         """
         Calculate the adjacent tracts.
-        
+
         Notice that `shapely.touches` return True if there is one point touch.
         """
         for focalKey, focalTract in cls.tracts.items():
@@ -86,12 +86,12 @@ class Tract:
                         focalTract.neighbors.append(otherTract)
         # calculate whether the tract is on CA boundary
         cls.boundarySet = set()
-        for k, t in cls.tracts.items():
+        for _, t in cls.tracts.items():
             for n in t.neighbors:
                 if t.CA != n.CA:
                     t.onEdge = True
                     cls.boundarySet.add(t)
-                    
+
     @classmethod
     def updateBoundarySet(cls, tract):
         """
@@ -113,11 +113,15 @@ class Tract:
 
     @classmethod
     def visualizeTractsAdjacency(cls):
+        """
+        Plot tract adjacency graph. Each tract is ploted with its centroid.
+        The adjacency 
+        """
         from matplotlib.lines import Line2D
         tracts = cls.tracts
-        f = plt.figure(figsize=(16,16))
+        f = plt.figure(figsize=(16, 16))
         ax = f.gca()
-        for k, t in tracts.items():
+        for _, t in tracts.items():
             for n in t.neighbors:
                 ax.add_line(Line2D(*zip(t.centroid, n.centroid)))
         ax.axis('scaled')
@@ -138,14 +142,14 @@ def compare_tract_shapefiles():
             exactly_same = False
             print "{} not in tracts2".format(tid)
             break
-        
+
         t1 = trts1[tid]
         t2 = trts2[tid]
         if t1.CA != t2.CA:
             exactly_same = False
             print "{} and {} not equal".format(t1.CA, t2.CA)
             break
-        
+
         x1, y1 = t1.polygon.boundary.coords.xy
         x2, y2 = t2.polygon.boundary.coords.xy
         if len(x1) != len(x2) or len(y1) != len(y2):
@@ -153,16 +157,16 @@ def compare_tract_shapefiles():
             print "length not match {} {} {} {}".format(len(x1), len(x2), len(y1), len(y2))
             break
         else:
-            for i in range(len(x1)):
+            for i, _ in enumerate(x1):
                 assert abs(x1[i] - x2[i]) <= 0.00001
-        
-    assert exactly_same == True
+
+    assert exactly_same is True
     print "Good news: two shapfiles are mostly identical."
     return trts1, trts2
-    
-    
+
+
 if __name__ == '__main__':
 #    t1, t2 = compare_tract_shapefiles()
-    trts1 = Tract.createAllTracts()
+    trts0 = Tract.createAllTracts()
     Tract.visualizeTracts()
     Tract.visualizeTractsAdjacency()
