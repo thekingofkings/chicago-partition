@@ -9,12 +9,13 @@ MCMC procedure to find the best partition
 """
 
 from tract import Tract
-from communityArea import CommunityArea
+from community_area import CommunityArea
 from regression import Linear_regression_evaluation, Linear_regression_training
 import random
 from math import exp
 import numpy as np
 from shapely.ops import cascaded_union
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
+    mae_index = [0]
     while cnt <= M:
         cnt += 1
         iter_cnt += 1
@@ -70,6 +72,7 @@ if __name__ == '__main__':
         
         if sr < gamma: # made progress
             mae_series.append(mae2)
+            mae_index.append(iter_cnt)
             print "{} --> {} in {} steps".format(mae1, mae2, cnt)
             mae1, std_ae1, mre1 = mae2, std_ae2, mre2
         
@@ -77,7 +80,7 @@ if __name__ == '__main__':
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 5:
+            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 3:
                 # when mae converges
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 break
@@ -88,3 +91,8 @@ if __name__ == '__main__':
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
+
+    f = plt.figure()
+    plt.plot(mae_series)
+    plt.xlabel("iterations")
+    plt.ylabel("Training errors")
