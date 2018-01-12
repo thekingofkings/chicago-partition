@@ -51,7 +51,7 @@ def get_f(ae,T,penalty=None,log=True):
     :param T: Temperature parameter
     :param penalty: value to penalize constrain object
     :param log: (Bool) Return f on log scale
-    :return:
+    :return: the 'energy' of a given state
     """
     if penalty is None:
         lmbda = 0
@@ -69,24 +69,26 @@ def get_gamma(f1,f2,log=True):
     :param f1: f ("energy function") of current state
     :param f2: f ("energy function") of proposed state
     :param log: (bool) Are f1 and f2 on log scale?
-    :return:
+    :return: value for gamma, or probability of accepting proposed state
     """
 
     if log:
-        return f2 - f1
+        alpha = f2 - f1
+        return np.min((0,alpha))
     else:
-        return f2/f1
+        alpha = f2/f1
+        return np.min((1,alpha))
 
 
 
 
 def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
-    x = range(len(error_array))
+    #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
     f, axarr = plt.subplots(2, sharex=True,figsize=(12,8))
-    axarr[0].plot(x, np.array(error_array))
+    axarr[0].plot(mae_index, np.array(error_array))
     axarr[0].set_title('Mean Absolute Error')
-    axarr[1].plot(x, np.array(variance_array))
+    axarr[1].plot(mae_index, np.array(variance_array))
     axarr[1].set_title('Population Variance (over communities)')
 
     plt.savefig(fname)
@@ -147,10 +149,7 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
         sr = np.log(random.random())
         update_sample_weight_func(mae1, mae2, t)
 
-        # Get acceptance probability min(log(1), log(gamma))
-        acc_prob = np.min([0,gamma])
-
-        if sr < acc_prob: # made progress
+        if sr < gamma: # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt,mae1, mae2, cnt)
@@ -236,6 +235,9 @@ def adaptive_MCMC():
             
     MCMC_sampling(adaptive_sample, update_tractWeight)
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
+
+
+
 
 
 if __name__ == '__main__':
