@@ -10,7 +10,7 @@ MCMC procedure to find the best partition
 
 from tract import Tract
 from community_area import CommunityArea
-from regression import Linear_regression_evaluation, Linear_regression_training
+from regression import NB_regression_training
 import random
 from math import exp
 import numpy as np
@@ -25,12 +25,12 @@ def initialize():
     random.seed(0)
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:5]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     M = 100
     T = 10
     CA_maxsize = 30
-    mae1, _, _ = Linear_regression_training(CommunityArea.features, featureName, targetName)
+    mae1, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
@@ -94,7 +94,7 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         
         # evaluate new partition
-        mae2, _, _ = Linear_regression_training(CommunityArea.features, featureName, targetName)
+        mae2, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         update_sample_weight_func(mae1, mae2, t)
         gamma = F(mae2) / F(mae1)
         sr = random.random()
