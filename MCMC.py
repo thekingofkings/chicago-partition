@@ -59,6 +59,7 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
     MCMC search for optimal solution.
     Input:
         sample_func is the sample proposal method.
+        update_sample_weight_func updates sampling auxilary variables.
     Output:
         Optimal partition plot and training error decreasing trend.
     """
@@ -99,21 +100,25 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
         sr = random.random()
         
         if sr < gamma: # made progress
+            if iter_cnt % 1000 == 0:
+#                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
+                print "{} --> {} in {} steps".format(mae1, mae2, cnt)
+                
             mae_series.append(mae2)
             mae_index.append(iter_cnt)
-            print "{} --> {} in {} steps".format(mae1, mae2, cnt)
             mae1 = mae2
         
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 20:
+            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 5:
                 # when mae converges
+                print "converge in {} samples with {} acceptances \
+                    sample conversion rate {}".format(iter_cnt, len(mae_series),
+                                                len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 break
-            if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
         else:
             # restore communities features
             t.CA = prv_caid
@@ -126,13 +131,36 @@ def naive_MCMC():
     convergence_plot()
 
 
-def adaptive_mcmc():
+def adaptive_MCMC():
     initialize()
-    tract_weight = np.ones(len(Tract.tracts))
-    pass
+    # initialize adapative sampling variable
+    ntrct = len(Tract.tracts)
+    tractWeights = dict(zip(Tract.tracts.keys(), [1.0]*ntrct))
+    
+    def adaptive_sample(tractSet, k):
+        tractIDs = [t.id for t in tractSet]
+        sampleWeights = [tractWeights[tid] for tid in tractIDs]
+        tmp = random.uniform(0, sum(sampleWeights))
+        
+        for tid in tractIDs:
+            if tmp < tractWeights[tid]:
+                return [Tract.tracts[tid]]
+            else:
+                tmp -= tractWeights[tid]
+        return [None]
+    
+    
+    def update_tractWeight(ae1, ae2, t):
+        if ae1 < ae2:
+            tractWeights[t.id] *= 0.8
+        else:
+            tractWeights[t.id] *= 1/0.8
+            
+    MCMC_sampling(adaptive_sample, update_tractWeight)
     convergence_plot()
 
 
 if __name__ == '__main__':
     naive_MCMC()
+    adaptive_MCMC()
 
