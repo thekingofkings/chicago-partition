@@ -9,40 +9,75 @@ MCMC procedure to find the best partition
 """
 
 from tract import Tract
-from communityArea import CommunityArea
-from regression import Linear_regression_evaluation, Linear_regression_training
+from community_area import CommunityArea
+from regression import NB_regression_training, NB_regression_evaluation
 import random
 from math import exp
 import numpy as np
 from shapely.ops import cascaded_union
-from mcmcUtils import plotMcmcDiagnostics
+import matplotlib.pyplot as plt
 
 
-if __name__ == '__main__':
+def initialize():
+    global M, T, featureName, targetName, CA_maxsize, mae1, cnt, iter_cnt, \
+        mae_series, mae_index, var_series,pop_variance1
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:5]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     M = 100
     T = 10
     CA_maxsize = 30
-    mae1, std_ae1, mre1 = Linear_regression_training(CommunityArea.features, featureName, targetName)
-    pop_variance1 = np.var(CommunityArea.population)
-
     # Plot original community population distribution
     CommunityArea.visualizePopDist(fname='orig-pop-distribution')
     print "# sampling"
+    CA_maxsize = 30
+    mae1, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+    pop_variance1 = np.var(CommunityArea.population)
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
     var_series = [pop_variance1]
+    mae_index = [0]
+
+
+def F(ae):
+    return exp(-ae / T)
+
+
+def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
+    x = range(len(error_array))
+    # Two subplots, the axes array is 1-d
+    f, axarr = plt.subplots(2, sharex=True,figsize=(12,8))
+    axarr[0].plot(x, np.array(error_array))
+    axarr[0].set_title('Mean Absolute Error')
+    axarr[1].plot(x, np.array(variance_array))
+    axarr[1].set_title('Population Variance (over communities)')
+
+    plt.savefig(fname)
+    plt.close()
+    plt.clf()
+
+
+
+def MCMC_sampling(sample_func, update_sample_weight_func):
+    """
+    MCMC search for optimal solution.
+    Input:
+        sample_func is the sample proposal method.
+        update_sample_weight_func updates sampling auxilary variables.
+    Output:
+        Optimal partition plot and training error decreasing trend.
+    """
+    global mae1, cnt, iter_cnt, pop_variance1
+    print "# sampling"
     while cnt <= M:
         cnt += 1
         iter_cnt += 1
         # sample a boundary tract
-        t = random.sample(Tract.boundarySet, 1)[0]
+        t = sample_func(Tract.boundarySet, 1)[0]
         t_flip_candidate = set()
         for n in t.neighbors:
             if n.CA != t.CA and n.CA not in t_flip_candidate:
@@ -68,7 +103,7 @@ if __name__ == '__main__':
         # Get updated variance of population distribution
         pop_variance2 = np.var(CommunityArea.population)
         # evaluate new partition
-        mae2, std_ae2, mre2 = Linear_regression_training(CommunityArea.features, featureName, targetName)
+        mae2, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         #f1 = exp(- (mae1 + pop_variance1) / T)
         #f2 = exp(- (mae2 + pop_variance2)/ T)
@@ -77,29 +112,98 @@ if __name__ == '__main__':
         gamma = (mae1 - mae2 + pop_variance1 - pop_variance2)/T
 
         sr = np.log(random.random())
-        
+
+        update_sample_weight_func(mae1, mae2, t)
+
         if sr < gamma: # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt,mae1, mae2, cnt)
-            mae1, std_ae1, mre1, pop_variance1 = mae2, std_ae2, mre2, pop_variance2
-        
+            # Update error, variance
+            mae1, pop_variance1 = mae2, pop_variance2
+            mae_index.append(iter_cnt)
+
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 100 and np.std(mae_series[-50:]) < 3:
+            if len(mae_series) > 10 and np.std(mae_series[-50:]) < 25:
                 # when mae converges
+                print "converge in {} samples with {} acceptances \
+                    sample conversion rate {}".format(iter_cnt, len(mae_series),
+                                                len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
-                plotMcmcDiagnostics(error_array=mae_series,variance_array=var_series)
+
 
                 break
+
             if iter_cnt % 500 == 0:
                 CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
                 CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
+
         else:
             # restore communities features
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
+
+
+def leaveOneOut_evaluation(year, info_str="optimal boundary"):
+    """
+    Leave-one-out evaluation the current partitino with next year crime rate.
+    """
+    CommunityArea._initializeCAfeatures(crimeYear=year)
+    featureName = CommunityArea.featureNames
+    targetName = 'total'
+    print "leave one out with {} in {}".format(info_str, year)
+    print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
+    
+    
+
+def naive_MCMC():
+    initialize()
+    # loo evaluation test data on original boundary
+    leaveOneOut_evaluation(2011, "Administrative boundary")
+    # restore training data
+    CommunityArea._initializeCAfeatures(2010)
+
+    MCMC_sampling(random.sample, lambda ae1, ae2, t : 1)
+    plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
+    leaveOneOut_evaluation(2011)
+
+
+
+
+def adaptive_MCMC():
+    initialize()
+    # initialize adapative sampling variable
+    ntrct = len(Tract.tracts)
+    tractWeights = dict(zip(Tract.tracts.keys(), [1.0]*ntrct))
+    
+    def adaptive_sample(tractSet, k):
+        tractIDs = [t.id for t in tractSet]
+        sampleWeights = [tractWeights[tid] for tid in tractIDs]
+        tmp = random.uniform(0, sum(sampleWeights))
+        
+        for tid in tractIDs:
+            if tmp < tractWeights[tid]:
+                return [Tract.tracts[tid]]
+            else:
+                tmp -= tractWeights[tid]
+        return [None]
+    
+    
+    def update_tractWeight(ae1, ae2, t):
+        if ae1 < ae2:
+            tractWeights[t.id] *= 0.8
+        else:
+            tractWeights[t.id] *= 1/0.8
+            
+    MCMC_sampling(adaptive_sample, update_tractWeight)
+    plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
+
+
+if __name__ == '__main__':
+    naive_MCMC()
+
 

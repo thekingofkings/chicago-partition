@@ -11,13 +11,13 @@ Negative Binomial (NB) regression model.
 import numpy as np
 import statsmodels.api as sm
 from sklearn.model_selection import LeaveOneOut
-from sklearn import preprocessing, linear_model
+from sklearn import linear_model
 
 def NB_regression_evaluation(df, featureNames, targetName):
     """
     Use python statsmodels lib to evaluate NB regression.
     The evaluation setting is leave-one-out.
-    
+
     Input:
         The pandas.DataFrame of CA level features
     Output:
@@ -39,17 +39,32 @@ def NB_regression_evaluation(df, featureNames, targetName):
     return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
 
 
+def NB_regression_training(df, featureNames, targetName):
+    """
+    NB training for partition search
+    """
+    crimeRate = df[targetName]
+    nbmodel = sm.GLM(crimeRate, df[featureNames], family=sm.families.NegativeBinomial())
+    model_res = nbmodel.fit()
+    y_pred = nbmodel.predict(model_res.params, df[featureNames])
+    errors = abs(crimeRate - y_pred)
+    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
+
+
 def test_NB_regression():
+    """
+    Test function of NB model.
+    """
     from tract import Tract
-    from communityArea import CommunityArea
+    from community_area import CommunityArea
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:20]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
-    
-    
-    
+    print NB_regression_training(CommunityArea.features, featureName, targetName)
+
+
 
 def Linear_regression_evaluation(df, featureNames, targetName):
     """
@@ -82,19 +97,20 @@ def Linear_regression_training(df, featureNames, targetName):
 
 
 def test_LR_regression():
+    """
+    Test function for LR model.
+    """
     from tract import Tract
-    from communityArea import CommunityArea
+    from community_area import CommunityArea
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:5]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     print Linear_regression_evaluation(CommunityArea.features, featureName, targetName)
     print Linear_regression_training(CommunityArea.features, featureName, targetName)
-    
-    
+
+
 if __name__ == '__main__':
-#    test_NB_regression()
+    test_NB_regression()
     test_LR_regression()
-    
-    
     

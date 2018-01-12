@@ -14,6 +14,7 @@ from tract import Tract
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
 import pandas as pd
+from feature_utils import retrieve_summarized_income_features
 
 class CommunityArea:
     
@@ -33,9 +34,19 @@ class CommunityArea:
         """
         self.polygon = cascaded_union([e.polygon for e in self.tracts.values()])
         tract_features = CommunityArea.features_raw.loc[ self.tracts.keys() ]
-        self.features = tract_features.sum(axis=0)
+        # merge tract features to get CA features
+        # one CA feature is a pandas.DataFrame with one row
+        feat_series = tract_features.sum(axis=0)
+        feat_vals = feat_series.get_values()[None]
+        self.features = pd.DataFrame(feat_vals, columns=feat_series.index.get_values(),
+                                     index=[self.id])
         
-        
+        if hasattr(CommunityArea, "featureNames"):
+            self.features, _ = retrieve_summarized_income_features(self.features)
+        else:
+            self.features, CommunityArea.featureNames = retrieve_summarized_income_features(self.features)
+
+
     @classmethod
     def createAllCAs(cls, tracts):
         """
@@ -54,19 +65,23 @@ class CommunityArea:
                 CAs[trct.CA] = ca
             else:
                 CAs[trct.CA].addTract(tID, trct)
-        
-        # initialize features
-        cls.features_raw = Tract.features if hasattr(Tract, "features") else Tract.generateFeatures()
+        cls.CAs = CAs
+        cls._initializeCAfeatures()
+        return CAs
+
+
+    @classmethod
+    def _initializeCAfeatures(cls, crimeYear=2010):
+        cls.features_raw = Tract.features if hasattr(Tract, "features") \
+            and Tract.crimeYear == crimeYear else Tract.generateFeatures(crimeYear)
         cls.features_ca_dict = {}
-        for ca in CAs.values():
+        for ca in cls.CAs.values():
             ca.initializeField()
             cls.features_ca_dict[ca.id] = ca.features
-        cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient="index")
-        # Save population feature for partitioning constraints
+        cls.features = pd.concat(cls.features_ca_dict.values())
+        # Save population feature for partitioning constraints d
         cls.populationFeature = "B1901001"
         cls.population = cls.features[cls.populationFeature]
-        cls.CAs = CAs
-        return CAs
 
 
     @classmethod
@@ -83,9 +98,9 @@ class CommunityArea:
         new_CA.tracts[tract.id] = tract
         new_CA.initializeField()
         cls.features_ca_dict[new_CAid] = new_CA.features
-        X = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient='index')
-        cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient='index')
-        # update population feature for partitioning constraints
+        
+        # convert dict of pandas.Series into DataFrame
+        cls.features = pd.concat(cls.features_ca_dict.values())
         cls.population = cls.features[cls.populationFeature]
         
 
@@ -111,6 +126,7 @@ class CommunityArea:
         plt.savefig(fname)
         plt.close()
         plt.clf()
+        
 
 
 if __name__ == '__main__':
