@@ -10,7 +10,7 @@ matplotlib.rc('pdf', fonttype=42)
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
-from feature_utils import retrieve_crime_count, retrieve_income_features
+from feature_utils import retrieve_income_features, retrieve_crime_count
 
 
 class Tract:

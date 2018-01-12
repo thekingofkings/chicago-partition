@@ -47,7 +47,7 @@ def test_NB_regression():
     from community_area import CommunityArea
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:20]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
 
@@ -92,13 +92,13 @@ def test_LR_regression():
     from community_area import CommunityArea
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-    featureName = Tract.income_description.keys()[:5]
+    featureName = CommunityArea.featureNames
     targetName = 'total'
     print Linear_regression_evaluation(CommunityArea.features, featureName, targetName)
     print Linear_regression_training(CommunityArea.features, featureName, targetName)
 
 
 if __name__ == '__main__':
-#    test_NB_regression()
+    test_NB_regression()
     test_LR_regression()
     

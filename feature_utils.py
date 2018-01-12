@@ -70,15 +70,17 @@ def retrieve_income_features():
     header_decode = dict(zip(header, header_description))
     return featureDF, header_decode
 
-def retrieve_income_features_entropy(featureDF):
+
+def retrieve_summarized_income_features(featureDF):
     '''compute features including diversity and percentage'''
     featureDF = featureDF.loc[:,~featureDF.columns.duplicated()]
     added_features = []
     # calculate percentage for different ethnic population
+    # white, black, latino, asian
     ethnics = ['H','B','I','D']
 
     ##calculate overall population
-    featureDF['B1901Z01'] = 0
+    featureDF = featureDF.assign(B1901Z01=np.zeros(featureDF.shape[0]))
     for ethnic in ethnics:
         feature_col_name = 'B1901%s01'%ethnic
         featureDF['B1901Z01'] += featureDF['%s'%feature_col_name]
@@ -97,8 +99,8 @@ def retrieve_income_features_entropy(featureDF):
         weight_features = ['B1901%s%s'%(ethnic, str(level).zfill(2)) for level in range(2,18)]
         featureDF['mean_%s01'%ethnic] = featureDF.apply(lambda row: _weighted_mean(row,index_to_income,weight_features), axis=1)
 
-    entropy_features_income = ['mean_%s01'%ethnic for ethnic in ethnics]
-    featureDF['income_diversity'] = featureDF.apply(lambda row: _entropy(row, entropy_features_income), axis=1)
+    income_by_ethnicity = ['mean_%s01'%ethnic for ethnic in ethnics]
+    featureDF['income_variance'] = featureDF.apply(lambda row: _entropy(row, income_by_ethnicity), axis=1)
 
 
     added_features.append('B1901Z01')
@@ -107,14 +109,13 @@ def retrieve_income_features_entropy(featureDF):
         added_features.append('%s_pct'%feature_col_name)
         added_features.append('mean_%s01'%ethnic)
     added_features.append('pop_diversity')
-    added_features.append('income_diversity')
+    added_features.append('income_variance')
     return featureDF,added_features
 
-def _percentage(row,numerator_feature,denominator):
-    return 0 if np.isnan(row[numerator_feature]/float(row[denominator]))  else row[numerator_feature]/float(row[denominator])
+def _percentage(row, numerator_feature, denominator):
+    return row[numerator_feature]/row[denominator]  if row[denominator] != 0.0 else 0
 
-
-def _entropy(row,features):
+def _entropy(row, features):
     x = row[features].values
     return stats.entropy(x) if stats.entropy(x) != float('-inf') else 0
 
@@ -125,19 +126,7 @@ def _weighted_mean(row, values, weight_features):
     else:
         return 0
 
-def retrieve_income_features_entropy_community(featureDF, tract_to_community_mapping):
-    """
-    now you may not need to use this,compute for all tracts from different communities
-    :param featureDF:
-    :param tract_to_community_mapping:
-    :return:
-    """
-    featureDF = pd.merge(featureDF,tract_to_community_mapping,how='inner',left_index=True,right_index=True)
-    groupDF = featureDF.groupby(by='CA_no').sum()
-    groupDF = groupDF.reset_index().set_index('CA_no')
-    groupDF = retrieve_income_features_entropy(groupDF)
-    featureDF_with_groupinfo = pd.merge(featureDF,groupDF,how='left',left_on='CA_no',right_index=True,suffixes=['','_CA'])
-    return featureDF_with_groupinfo
+
 
 def retrieve_crime_count(year=2010):
     """
@@ -187,8 +176,8 @@ def validate_region_keys():
             print s
 
 if __name__ == '__main__':
-    validate_region_keys()
-
+#    validate_region_keys()
     F0, D0 = retrieve_income_features()
+    F1, D1 = retrieve_summarized_income_features(F0)
     Y0 = retrieve_crime_count()
 
