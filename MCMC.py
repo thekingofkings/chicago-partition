@@ -15,6 +15,7 @@ import random
 from math import exp
 import numpy as np
 from shapely.ops import cascaded_union
+from mcmcUtils import plotMcmcDiagnostics
 
 
 if __name__ == '__main__':
@@ -28,11 +29,15 @@ if __name__ == '__main__':
     T = 10
     CA_maxsize = 30
     mae1, std_ae1, mre1 = Linear_regression_training(CommunityArea.features, featureName, targetName)
-    
+    pop_variance1 = np.var(CommunityArea.population)
+
+    # Plot original community population distribution
+    CommunityArea.visualizePopDist(fname='orig-pop-distribution')
     print "# sampling"
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
+    var_series = [pop_variance1]
     while cnt <= M:
         cnt += 1
         iter_cnt += 1
@@ -60,29 +65,39 @@ if __name__ == '__main__':
         # update communities features for evaluation
         t.CA = new_caid
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
-        
+        # Get updated variance of population distribution
+        pop_variance2 = np.var(CommunityArea.population)
         # evaluate new partition
         mae2, std_ae2, mre2 = Linear_regression_training(CommunityArea.features, featureName, targetName)
-        f1 = exp(- mae1 / T)
-        f2 = exp(- mae2 / T)
-        gamma = f2 / f1
-        sr = random.random()
+        # Calculate acceptance probability --> Put on log scale
+        #f1 = exp(- (mae1 + pop_variance1) / T)
+        #f2 = exp(- (mae2 + pop_variance2)/ T)
+        #gamma = f2 / f1
+
+        gamma = (mae1 - mae2 + pop_variance1 - pop_variance2)/T
+
+        sr = np.log(random.random())
         
         if sr < gamma: # made progress
             mae_series.append(mae2)
-            print "{} --> {} in {} steps".format(mae1, mae2, cnt)
-            mae1, std_ae1, mre1 = mae2, std_ae2, mre2
+            var_series.append(pop_variance2)
+            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt,mae1, mae2, cnt)
+            mae1, std_ae1, mre1, pop_variance1 = mae2, std_ae2, mre2, pop_variance2
         
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 50 and np.std(mae_series[-50:]) < 5:
+            if len(mae_series) > 100 and np.std(mae_series[-50:]) < 3:
                 # when mae converges
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
+                CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                plotMcmcDiagnostics(error_array=mae_series,variance_array=var_series)
+
                 break
             if iter_cnt % 500 == 0:
                 CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
+                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
         else:
             # restore communities features
             t.CA = prv_caid

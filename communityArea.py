@@ -62,6 +62,9 @@ class CommunityArea:
             ca.initializeField()
             cls.features_ca_dict[ca.id] = ca.features
         cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient="index")
+        # Save population feature for partitioning constraints
+        cls.populationFeature = "B1901001"
+        cls.population = cls.features[cls.populationFeature]
         cls.CAs = CAs
         return CAs
 
@@ -80,8 +83,10 @@ class CommunityArea:
         new_CA.tracts[tract.id] = tract
         new_CA.initializeField()
         cls.features_ca_dict[new_CAid] = new_CA.features
-        
+        X = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient='index')
         cls.features = pd.DataFrame.from_dict(data=cls.features_ca_dict, orient='index')
+        # update population feature for partitioning constraints
+        cls.population = cls.features[cls.populationFeature]
         
 
         
@@ -98,7 +103,14 @@ class CommunityArea:
         ax.axis("off")
         plt.tight_layout()
         plt.savefig(fname)
-        
+
+    @classmethod
+    def visualizePopDist(cls,fname):
+        pop_df = pd.DataFrame(cls.population)
+        pop_df.plot(kind='barh', figsize=(16, 12))
+        plt.savefig(fname)
+        plt.close()
+        plt.clf()
 
 
 if __name__ == '__main__':
