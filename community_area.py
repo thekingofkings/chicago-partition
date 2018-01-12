@@ -65,16 +65,20 @@ class CommunityArea:
                 CAs[trct.CA] = ca
             else:
                 CAs[trct.CA].addTract(tID, trct)
-        
-        # initialize features
-        cls.features_raw = Tract.features if hasattr(Tract, "features") else Tract.generateFeatures()
+        cls.CAs = CAs
+        cls._initializeCAfeatures()
+        return CAs
+
+
+    @classmethod
+    def _initializeCAfeatures(cls, crimeYear=2010):
+        cls.features_raw = Tract.features if hasattr(Tract, "features") \
+            and Tract.crimeYear == crimeYear else Tract.generateFeatures(crimeYear)
         cls.features_ca_dict = {}
-        for ca in CAs.values():
+        for ca in cls.CAs.values():
             ca.initializeField()
             cls.features_ca_dict[ca.id] = ca.features
         cls.features = pd.concat(cls.features_ca_dict.values())
-        cls.CAs = CAs
-        return CAs
 
 
     @classmethod

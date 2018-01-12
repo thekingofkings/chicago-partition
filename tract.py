@@ -60,14 +60,15 @@ class Tract:
         plt.savefig("tracts.png")
 
     @classmethod
-    def generateFeatures(cls):
+    def generateFeatures(cls, crimeYear=2010):
         """
         Generate one feature matrices for all tracts.
         Output:
             Tract.features - a dataframe of features. The header is feature name.
         """
+        cls.crimeYear = crimeYear
         f, cls.income_description = retrieve_income_features()
-        y = retrieve_crime_count()
+        y = retrieve_crime_count(crimeYear)
         cls.features = f.join(y)
         return cls.features
 

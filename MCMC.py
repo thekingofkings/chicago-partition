@@ -10,7 +10,7 @@ MCMC procedure to find the best partition
 
 from tract import Tract
 from community_area import CommunityArea
-from regression import NB_regression_training
+from regression import NB_regression_training, NB_regression_evaluation
 import random
 from math import exp
 import numpy as np
@@ -29,7 +29,7 @@ def initialize():
     targetName = 'total'
     M = 100
     T = 10
-    CA_maxsize = 30
+    CA_maxsize = 30    
     mae1, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
     cnt = 0
     iter_cnt = 0
@@ -125,10 +125,30 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
 
+def leaveOneOut_evaluation(year, info_str="optimal boundary"):
+    """
+    Leave-one-out evaluation the current partitino with next year crime rate.
+    """
+    CommunityArea._initializeCAfeatures(crimeYear=year)
+    featureName = CommunityArea.featureNames
+    targetName = 'total'
+    print "leave one out with {} in {}".format(info_str, year)
+    print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
+    
+    
+
 def naive_MCMC():
     initialize()
+    # loo evaluation test data on original boundary
+    leaveOneOut_evaluation(2011, "Administrative boundary")
+    # restore training data
+    CommunityArea._initializeCAfeatures(2010)
+
     MCMC_sampling(random.sample, lambda ae1, ae2, t : 1)
     convergence_plot()
+    leaveOneOut_evaluation(2011)
+
+
 
 
 def adaptive_MCMC():
@@ -162,5 +182,5 @@ def adaptive_MCMC():
 
 if __name__ == '__main__':
     naive_MCMC()
-    adaptive_MCMC()
+#    adaptive_MCMC()
 
