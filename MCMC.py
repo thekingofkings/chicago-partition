@@ -112,10 +112,12 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
         gamma = (mae1 - mae2 + pop_variance1 - pop_variance2)/T
 
         sr = np.log(random.random())
-
         update_sample_weight_func(mae1, mae2, t)
 
-        if sr < gamma: # made progress
+        # Get acceptance probability min(log(1), log(gamma))
+        acc_prob = np.min([0,gamma])
+
+        if sr < acc_prob: # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt,mae1, mae2, cnt)
