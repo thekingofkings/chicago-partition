@@ -104,3 +104,6 @@ ENV/
 # data foler
 data
 *.png
+
+# pycharm project
+.idea/
