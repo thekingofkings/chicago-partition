@@ -43,8 +43,41 @@ def initialize():
     mae_index = [0]
 
 
-def F(ae):
-    return exp(-ae / T)
+def get_f(ae,T,penalty=None,log=True):
+    """
+    compute the "energy function F".
+
+    :param ae: Error measurement
+    :param T: Temperature parameter
+    :param penalty: value to penalize constrain object
+    :param log: (Bool) Return f on log scale
+    :return:
+    """
+    if penalty is None:
+        lmbda = 0
+    else:
+        lmbda = penalty
+
+    if log:
+        return -(ae + lmbda) / T
+    else:
+        return np.exp(-(ae + lmbda) / T)
+
+def get_gamma(f1,f2,log=True):
+    """
+    Compute gamma to be used in acceptance probability of proposed state
+    :param f1: f ("energy function") of current state
+    :param f2: f ("energy function") of proposed state
+    :param log: (bool) Are f1 and f2 on log scale?
+    :return:
+    """
+
+    if log:
+        return f2 - f1
+    else:
+        return f2/f1
+
+
 
 
 def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
@@ -105,12 +138,12 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
         # evaluate new partition
         mae2, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
-        #f1 = exp(- (mae1 + pop_variance1) / T)
-        #f2 = exp(- (mae2 + pop_variance2)/ T)
-        #gamma = f2 / f1
-
-        gamma = (mae1 - mae2 + pop_variance1 - pop_variance2)/T
-
+        # calculate f ('energy') of current and proposed states
+        F1 = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
+        F2 = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+        # Compute gamma for acceptance probability
+        gamma = get_gamma(f1=F1,f2=F2,log=True)
+        # Generate random number on log scale
         sr = np.log(random.random())
         update_sample_weight_func(mae1, mae2, t)
 
