@@ -11,6 +11,8 @@ Generate tract-level features for regressions
 
 from openpyxl import load_workbook
 import pandas as pd
+import scipy.stats as stats
+import numpy as np
 
 
 def retrieve_corina_features():
@@ -66,6 +68,74 @@ def retrieve_income_features():
     header_decode = dict(zip(header, header_description))
     return featureDF, header_decode
 
+def retrieve_income_features_entropy(featureDF):
+    '''compute features including diversity and percentage'''
+    featureDF = featureDF.loc[:,~featureDF.columns.duplicated()]
+    added_features = []
+    # calculate percentage for different ethnic population
+    ethnics = ['H','B','I','D']
+
+    ##calculate overall population
+    featureDF['B1901Z01'] = 0
+    for ethnic in ethnics:
+        feature_col_name = 'B1901%s01'%ethnic
+        featureDF['B1901Z01'] += featureDF['%s'%feature_col_name]
+    ##calcluate percentage
+    for ethnic in ethnics:
+        feature_col_name = 'B1901%s01'%ethnic
+        featureDF['%s_pct'%feature_col_name] = featureDF.apply(lambda row: _percentage(row,feature_col_name,'B1901Z01'),axis=1)
+    ##calcaulate population diversity
+    entropy_features_pop = ['B1901%s01_pct'%ethnic for ethnic in ethnics]
+    featureDF['pop_diversity'] = featureDF.apply(lambda row: _entropy(row,entropy_features_pop), axis=1)
+
+    # calculate everage income of different ethnics
+    index_to_income = [5000,12500,17500,22500,27500,32500,37500,42500,47500,55000,67500,87500,112500,137500,175000,250000]
+
+    for ethnic in ethnics:
+        weight_features = ['B1901%s%s'%(ethnic, str(level).zfill(2)) for level in range(2,18)]
+        featureDF['mean_%s01'%ethnic] = featureDF.apply(lambda row: _weighted_mean(row,index_to_income,weight_features), axis=1)
+
+    entropy_features_income = ['mean_%s01'%ethnic for ethnic in ethnics]
+    featureDF['income_diversity'] = featureDF.apply(lambda row: _entropy(row, entropy_features_income), axis=1)
+
+
+    added_features.append('B1901Z01')
+    for ethnic in ethnics:
+        feature_col_name = 'B1901%s01' % ethnic
+        added_features.append('%s_pct'%feature_col_name)
+        added_features.append('mean_%s01'%ethnic)
+    added_features.append('pop_diversity')
+    added_features.append('income_diversity')
+    return featureDF,added_features
+
+def _percentage(row,numerator_feature,denominator):
+    return 0 if np.isnan(row[numerator_feature]/float(row[denominator]))  else row[numerator_feature]/float(row[denominator])
+
+
+def _entropy(row,features):
+    x = row[features].values
+    return stats.entropy(x) if stats.entropy(x) != float('-inf') else 0
+
+def _weighted_mean(row, values, weight_features):
+    weights = row[weight_features].values
+    if weights.sum()!= 0:
+        return np.average(values,weights=weights)
+    else:
+        return 0
+
+def retrieve_income_features_entropy_community(featureDF, tract_to_community_mapping):
+    """
+    now you may not need to use this,compute for all tracts from different communities
+    :param featureDF:
+    :param tract_to_community_mapping:
+    :return:
+    """
+    featureDF = pd.merge(featureDF,tract_to_community_mapping,how='inner',left_index=True,right_index=True)
+    groupDF = featureDF.groupby(by='CA_no').sum()
+    groupDF = groupDF.reset_index().set_index('CA_no')
+    groupDF = retrieve_income_features_entropy(groupDF)
+    featureDF_with_groupinfo = pd.merge(featureDF,groupDF,how='left',left_on='CA_no',right_index=True,suffixes=['','_CA'])
+    return featureDF_with_groupinfo
 
 def retrieve_crime_count(year=2010):
     """
@@ -108,7 +178,8 @@ def validate_region_keys():
     print "len(shp) {}, len(2010 census) {}".format(len(shp_keys), len(census2010_keys))
     print "intersection: {}, union {}.".format(len(shp_keys & census2010_keys), 
                          len(shp_keys | census2010_keys))
-    
+
+    tract_to_community_mapping = {'CA_no':[],'tract_no':[]}
     for s in census2010_keys:
         if s not in shp_keys:
             print s
@@ -116,4 +187,5 @@ def validate_region_keys():
 if __name__ == '__main__':
     validate_region_keys()
     f,d = retrieve_income_features()
+    f,added_features = retrieve_income_features_entropy(f)
     y = retrieve_crime_count()
