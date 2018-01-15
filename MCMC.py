@@ -34,7 +34,7 @@ def initialize():
     CommunityArea.visualizePopDist(fname='orig-pop-distribution')
     print "# sampling"
     CA_maxsize = 30
-    mae1, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+    mae1, _, _,errors = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_variance1 = np.var(CommunityArea.population)
     cnt = 0
     iter_cnt = 0
@@ -80,6 +80,24 @@ def get_gamma(f1,f2,log=True):
         return np.min((1,alpha))
 
 
+def softmax(x,log=False):
+    """
+    Compute softmax of a vector x. Always subtract out max(x) to make more numerically stable.
+    :param x: (array-like) vector x
+    :param log: (bool) return log of softmax function
+    :return: Vector of probabilities using softmax function
+    """
+
+    # Numerically stable softmax: softmax_stable = softmax(x - max_i(x))
+    max_x =  np.max(x)
+    x_centered = x - max_x
+    if log:
+        log_sum = np.log(np.sum(np.exp(x_centered)))
+        return x_centered - log_sum
+    else:
+        exp_X = np.exp(x_centered)
+        return exp_X / np.sum(exp_X)
+
 
 
 def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
@@ -97,7 +115,7 @@ def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnos
 
 
 
-def MCMC_sampling(sample_func, update_sample_weight_func):
+def mcmcSamplerUniform(sample_func, update_sample_weight_func):
     """
     MCMC search for optimal solution.
     Input:
@@ -161,7 +179,7 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
             
-            if len(mae_series) > 10 and np.std(mae_series[-50:]) < 25:
+            if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
@@ -169,6 +187,110 @@ def MCMC_sampling(sample_func, update_sample_weight_func):
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
 
+
+                break
+
+            if iter_cnt % 500 == 0:
+                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
+                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
+
+        else:
+            # restore communities features
+            t.CA = prv_caid
+            CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
+
+
+def mcmcSamplerSoftmax():
+    """
+    MCMC search for optimal solution.
+    Input:
+        sample_func is the sample proposal method.
+        update_sample_weight_func updates sampling auxilary variables.
+    Output:
+        Optimal partition plot and training error decreasing trend.
+    """
+    global mae1, cnt, iter_cnt, pop_variance1
+    print "# sampling"
+    while cnt <= M:
+        cnt += 1
+        iter_cnt += 1
+
+        # Learn regression to obtain community-level errors (current state)
+        mae1, _, _,errors1 = NB_regression_training(CommunityArea.features, featureName, targetName)
+
+        ca_probs = softmax(errors1,log=False)
+
+        # Sample community -- probabilities derived from softmax of regression errors
+        all_communities = CommunityArea.CAs
+        sample_ca_id = np.random.choice(a=all_communities.keys(),size=1,replace=False,p=ca_probs)[0]
+        sample_ca = all_communities[sample_ca_id]
+
+
+        # Collect tracts within sampled community area that lie on community boundary
+        sample_ca_boundary_tracts = []
+        for tract in Tract.boundarySet:
+            if tract.CA == sample_ca_id:
+                sample_ca_boundary_tracts.append(tract)
+
+        # Sample tract (on boundary) within previously sampled community area
+        t = np.random.choice(a=sample_ca_boundary_tracts,size=1,replace=False)[0]
+
+        # Find neighbors that lie in different community
+        t_flip_candidate = set()
+        for n in t.neighbors:
+            if n.CA != t.CA and n.CA not in t_flip_candidate:
+                t_flip_candidate.add(n.CA)
+        # sample a CA assignment to flip
+        new_caid = t_flip_candidate.pop() if len(t_flip_candidate) == 1 else random.sample(t_flip_candidate, 1)[0]
+        prv_caid = t.CA
+        # check wether spatial continuity is guaranteed, if t is flipped
+        ca_tocheck = CommunityArea.CAs[prv_caid].tracts
+        del ca_tocheck[t.id]
+        resulted_shape = cascaded_union([e.polygon for e in ca_tocheck.values()])
+        ca_tocheck[t.id] = t
+        if resulted_shape.geom_type == 'MultiPolygon':
+            continue
+        # CA size constraint
+        if len(CommunityArea.CAs[new_caid].tracts) > CA_maxsize \
+                or len(CommunityArea.CAs[prv_caid].tracts) <= 1:
+            continue
+
+        # update communities features for evaluation
+        t.CA = new_caid
+        CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
+        # Get updated variance of population distribution
+        pop_variance2 = np.var(CommunityArea.population)
+        # evaluate new partition
+        mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
+        # Calculate acceptance probability --> Put on log scale
+        # calculate f ('energy') of current and proposed states
+        F1 = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
+        F2 = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
+        # Compute gamma for acceptance probability
+        gamma = get_gamma(f1=F1, f2=F2, log=True)
+        # Generate random number on log scale
+        sr = np.log(random.random())
+
+
+        if sr < gamma:  # made progress
+            mae_series.append(mae2)
+            var_series.append(pop_variance2)
+            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
+            # Update error, variance
+            mae1, pop_variance1 = mae2, pop_variance2
+            mae_index.append(iter_cnt)
+
+            # update tract boundary set for next round sampling
+            Tract.updateBoundarySet(t)
+            cnt = 0  # reset counter
+
+            if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
+                # when mae converges
+                print "converge in {} samples with {} acceptances \
+                    sample conversion rate {}".format(iter_cnt, len(mae_series),
+                                                      len(mae_series) / float(iter_cnt))
+                CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
+                CommunityArea.visualizePopDist(fname='final-pop-distribution')
 
                 break
 
@@ -201,7 +323,7 @@ def naive_MCMC():
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    MCMC_sampling(random.sample, lambda ae1, ae2, t : 1)
+    mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1)
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
     leaveOneOut_evaluation(2011)
 
@@ -232,15 +354,25 @@ def adaptive_MCMC():
             tractWeights[t.id] *= 0.8
         else:
             tractWeights[t.id] *= 1/0.8
-            
-    MCMC_sampling(adaptive_sample, update_tractWeight)
+
+    mcmcSamplerUniform(adaptive_sample, update_tractWeight)
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
 
 
+def MCMC_softmax_proposal():
+    initialize()
+    # loo evaluation test data on original boundary
+    leaveOneOut_evaluation(2011, "Administrative boundary")
+    # restore training data
+    CommunityArea._initializeCAfeatures(2010)
+
+    mcmcSamplerSoftmax(random.sample, lambda ae1, ae2, t: 1)
+    plotMcmcDiagnostics(mae_index=mae_index, error_array=mae_series, variance_array=var_series)
+    leaveOneOut_evaluation(2011)
 
 
 
 if __name__ == '__main__':
-    naive_MCMC()
+    MCMC_softmax_proposal()
 
 

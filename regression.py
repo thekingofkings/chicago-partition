@@ -48,7 +48,7 @@ def NB_regression_training(df, featureNames, targetName):
     model_res = nbmodel.fit()
     y_pred = nbmodel.predict(model_res.params, df[featureNames])
     errors = abs(crimeRate - y_pred)
-    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
+    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate), errors
 
 
 def test_NB_regression():
