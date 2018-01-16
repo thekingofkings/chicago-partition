@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 from MCMC import leaveOneOut_evaluation, get_f, get_gamma
+from keras.layers import Input, Embedding, Dense
+from keras.models import Model 
 
 
 
@@ -83,6 +85,8 @@ if __name__ == '__main__':
     leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
+    
+
     
     print "# sampling"
     while True:
