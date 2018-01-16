@@ -12,7 +12,6 @@ from tract import Tract
 from community_area import CommunityArea
 from regression import NB_regression_training, NB_regression_evaluation
 import random
-from math import exp
 import numpy as np
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
@@ -32,8 +31,6 @@ def initialize():
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(fname='orig-pop-distribution')
-    print "# sampling"
-    CA_maxsize = 30
     mae1, _, _,errors = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_variance1 = np.var(CommunityArea.population)
     cnt = 0
@@ -364,7 +361,7 @@ def MCMC_softmax_proposal():
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    mcmcSamplerSoftmax(random.sample, lambda ae1, ae2, t: 1)
+    mcmcSamplerSoftmax()
     plotMcmcDiagnostics(mae_index=mae_index, error_array=mae_series, variance_array=var_series)
     leaveOneOut_evaluation(2011)
 
