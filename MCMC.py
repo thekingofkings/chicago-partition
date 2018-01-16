@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 def initialize():
-    global M, T, featureName, targetName, CA_maxsize, mae1, cnt, iter_cnt, \
+    global M, T, featureName, targetName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
         mae_series, mae_index, var_series,pop_variance1
     print "# initialize"
     random.seed(0)
@@ -31,7 +31,9 @@ def initialize():
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(fname='orig-pop-distribution')
-    mae1, _, _,errors = NB_regression_training(CommunityArea.features, featureName, targetName)
+    print "# sampling"
+    CA_maxsize = 30
+    mae1, _, _,errors1 = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_variance1 = np.var(CommunityArea.population)
     cnt = 0
     iter_cnt = 0
@@ -60,21 +62,32 @@ def get_f(ae,T,penalty=None,log=True):
     else:
         return np.exp(-(ae + lmbda) / T)
 
-def get_gamma(f1,f2,log=True):
+def get_gamma(f_current,f_proposed,symmetric=True,log=True,q_proposed_given_current=None,q_current_given_proposed=None):
     """
     Compute gamma to be used in acceptance probability of proposed state
-    :param f1: f ("energy function") of current state
-    :param f2: f ("energy function") of proposed state
-    :param log: (bool) Are f1 and f2 on log scale?
+    :param f_current: f ("energy function") of current state
+    :param f_proposed: f ("energy function") of proposed state
+    :param log: (bool) Are f_current and f_proposed on log scale?
     :return: value for gamma, or probability of accepting proposed state
     """
+    if symmetric:
 
-    if log:
-        alpha = f2 - f1
-        return np.min((0,alpha))
+        if log:
+            alpha = f_proposed - f_current
+            gamma = np.min((0,alpha))
+        else:
+            alpha = f_proposed/f_current
+            gamma = np.min((1,alpha))
     else:
-        alpha = f2/f1
-        return np.min((1,alpha))
+
+        if log:
+            alpha = f_proposed - f_current + q_current_given_proposed - q_proposed_given_current
+            gamma = np.min((0,alpha))
+        else:
+            alpha = f_proposed*q_current_given_proposed/f_current*q_proposed_given_current
+            gamma = np.min((1,alpha))
+
+    return gamma
 
 
 def softmax(x,log=False):
@@ -95,6 +108,50 @@ def softmax(x,log=False):
         exp_X = np.exp(x_centered)
         return exp_X / np.sum(exp_X)
 
+
+def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None):
+    """
+    Function to hierarchicaly sample (1) Communities, (2) tracts within the given community
+    :param errors: Vector of errors for softmax
+    :param community_structure_dict: Dictionary of community objects -- reflective of conditional states community
+    structure. e.g., x'|x  or x|x'
+    :param boundary_tracts: List of tracts on boundary, given existing community structure
+    :param query_ca_prob:
+                    If None: return the probability of randomly selected
+                    else: return probability of selecting given tract ID
+
+    :return:
+        t: randomly sampled tract (within sampled community
+        sample_ca_id: The selected community ID number. If query_ca_prob == None, this is randomly selected. Else return
+                query_ca_prob
+        sample_ca_prob: Likelihood that sampled community area, i, was sampled:
+                i.e., p(CA_i)
+        tract_prob: Likelihood (uniform) that tract, j, was sampled conditinal on the sampled community:
+                i.e., p(t_j | CA_i)
+
+    """
+
+    # Compute softmax of errors for sampling probabilities
+    ca_probs = softmax(errors, log=False)
+
+    # Sample community -- probabilities derived from softmax of regression errors
+    if query_ca_prob is not None:
+        sample_ca_id = query_ca_prob
+    else:
+        sample_ca_id = np.random.choice(a=community_structure_dict.keys(), size=1, replace=False, p=ca_probs)[0]
+
+    # Collect tracts within sampled community area that lie on community boundary
+    sample_ca_boundary_tracts = []
+    for tract in boundary_tracts:
+        if tract.CA == sample_ca_id:
+            sample_ca_boundary_tracts.append(tract)
+
+    # Sample tract (on boundary) within previously sampled community area
+    t = np.random.choice(a=sample_ca_boundary_tracts, size=1, replace=False)[0]
+    sample_ca_prob = ca_probs.ix[sample_ca_id]
+    tract_prob = 1 / float(len(sample_ca_boundary_tracts))
+
+    return t, sample_ca_id, sample_ca_prob, tract_prob
 
 
 def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
@@ -156,10 +213,10 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        F1 = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
-        F2 = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+        f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
+        f_proposed = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
         # Compute gamma for acceptance probability
-        gamma = get_gamma(f1=F1,f2=F2,log=True)
+        gamma = get_gamma(f_current=f_current,f_proposed=f_proposed,log=True)
         # Generate random number on log scale
         sr = np.log(random.random())
         update_sample_weight_func(mae1, mae2, t)
@@ -204,31 +261,29 @@ def mcmcSamplerSoftmax():
     Output:
         Optimal partition plot and training error decreasing trend.
     """
-    global mae1, cnt, iter_cnt, pop_variance1
+    global mae1, errors1, cnt, iter_cnt, pop_variance1
     print "# sampling"
     while cnt <= M:
         cnt += 1
         iter_cnt += 1
 
-        # Learn regression to obtain community-level errors (current state)
-        mae1, _, _, errors1 = NB_regression_training(CommunityArea.features, featureName, targetName)
 
-        ca_probs = softmax(errors1,log=False)
+        ## Hierearchicaly sample community, then boundary tract within community
 
-        # Sample community -- probabilities derived from softmax of regression errors
-        all_communities = CommunityArea.CAs
-        sample_ca_id = np.random.choice(a=all_communities.keys(),size=1,replace=False,p=ca_probs)[0]
-        sample_ca = all_communities[sample_ca_id]
+        t, sample_ca_id ,sample_ca_prob, tract_prob = softmaxSamplingScheme(errors=errors1,
+                                                                            community_structure_dict=CommunityArea.CAs,
+                                                                            boundary_tracts=Tract.boundarySet)
 
+        """
+        # Monitor one tract for debugging
+        if iter_cnt == 1:
+            test_t = t
+            test_t_id = test_t.id
+            test_orig_ca_id = test_t.CA
 
-        # Collect tracts within sampled community area that lie on community boundary
-        sample_ca_boundary_tracts = []
-        for tract in Tract.boundarySet:
-            if tract.CA == sample_ca_id:
-                sample_ca_boundary_tracts.append(tract)
-
-        # Sample tract (on boundary) within previously sampled community area
-        t = np.random.choice(a=sample_ca_boundary_tracts,size=1,replace=False)[0]
+        test_t_updated = Tract.tracts[test_t_id]
+        test_t_updated_ca = test_t_updated.CA
+        """
 
         # Find neighbors that lie in different community
         t_flip_candidate = set()
@@ -250,19 +305,36 @@ def mcmcSamplerSoftmax():
                 or len(CommunityArea.CAs[prv_caid].tracts) <= 1:
             continue
 
-        # update communities features for evaluation
+        # Update current state to proposed state
         t.CA = new_caid
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
+        Tract.updateBoundarySet(t)
         # Get updated variance of population distribution
         pop_variance2 = np.var(CommunityArea.population)
         # evaluate new partition
         mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        F1 = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
-        F2 = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
+        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
+        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
+        # We need to compute Q to get gamma, since Q is non-symmetric under the softmax sampling scheme
+        log_q_proposed_given_current = np.log(sample_ca_prob) + np.log(tract_prob)
+
+        # Reverse conditioning to get q(z | z'); i.e., probability of current state given proposed state
+        _, _, sample_ca_prob_reverse, tract_prob_reverse = softmaxSamplingScheme(errors=errors2,
+                                                                                 community_structure_dict=CommunityArea.CAs,
+                                                                                 boundary_tracts=Tract.boundarySet,
+                                                                                 query_ca_prob=prv_caid)
+        log_q_current_given_proposed = np.log(sample_ca_prob_reverse) + np.log(tract_prob_reverse)
+
         # Compute gamma for acceptance probability
-        gamma = get_gamma(f1=F1, f2=F2, log=True)
+        gamma = get_gamma(f_current=f_current,
+                          f_proposed=f_proposed,
+                          log=True,
+                          symmetric=False,
+                          q_current_given_proposed=log_q_current_given_proposed,
+                          q_proposed_given_current=log_q_proposed_given_current)
+
         # Generate random number on log scale
         sr = np.log(random.random())
 
@@ -276,7 +348,7 @@ def mcmcSamplerSoftmax():
             mae_index.append(iter_cnt)
 
             # update tract boundary set for next round sampling
-            Tract.updateBoundarySet(t)
+
             cnt = 0  # reset counter
 
             if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
@@ -294,10 +366,10 @@ def mcmcSamplerSoftmax():
                 CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
 
         else:
-            # restore communities features
+            # restore community-tract structure to original state
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
-
+            Tract.updateBoundarySet(t)
 
 def leaveOneOut_evaluation(year, info_str="optimal boundary"):
     """
