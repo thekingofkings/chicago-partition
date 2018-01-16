@@ -12,7 +12,6 @@ from tract import Tract
 from community_area import CommunityArea
 from regression import NB_regression_training, NB_regression_evaluation
 import random
-from math import exp
 import numpy as np
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
@@ -211,7 +210,7 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         # Get updated variance of population distribution
         pop_variance2 = np.var(CommunityArea.population)
         # evaluate new partition
-        mae2, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+        mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
         f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
@@ -225,7 +224,7 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         if sr < gamma: # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
-            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt,mae1, mae2, cnt)
+            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_variance1 = mae2, pop_variance2
             mae_index.append(iter_cnt)
@@ -241,8 +240,6 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
-
-
                 break
 
             if iter_cnt % 500 == 0:
