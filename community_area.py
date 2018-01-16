@@ -101,6 +101,7 @@ class CommunityArea:
         
         # convert dict of pandas.Series into DataFrame
         cls.features = pd.concat(cls.features_ca_dict.values())
+        X = cls.features
         cls.population = cls.features[cls.populationFeature]
         
 
