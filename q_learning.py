@@ -16,15 +16,16 @@ from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import math
 from MCMC import leaveOneOut_evaluation, get_f, get_gamma
-from keras.layers import Input, Embedding, Dense, concatenate
+from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 
 
 
 def initialize():
     global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, pop_variance1, var_series
+        iter_cnt, pop_variance1, var_series, cnt
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
@@ -35,8 +36,9 @@ def initialize():
     T = 10
     CA_maxsize = 30
     mae1, _, _, errors = NB_regression_training(CommunityArea.features, featureName, targetName)
-    pop_variance1 = np.var(CommunityArea.population)
+    pop_variance1 = np.std(CommunityArea.population)
     iter_cnt = 0
+    cnt = 0
     mae_series = [mae1]
     var_series = [pop_variance1]
     mae_index = [0]
@@ -82,16 +84,16 @@ if __name__ == '__main__':
     initialize()
     
     # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011, "Administrative boundary")
+#    leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
-    CommunityArea._initializeCAfeatures(2010)
+#    CommunityArea._initializeCAfeatures(2010)
     
     partition = Input(shape=(801,), dtype='int32', name='partition')
     action_tract = Input(shape=(1,), dtype='int32', name='action_target_tract')
     action_toCA = Input(shape=(1,), dtype='int32', name='action_new_CA')
     
-    ca_embed = Embedding(77, 2, input_length=802)(concatenate([partition, action_toCA]))
-    tract_embed = Embedding(801, 4, input_length=1)(action_tract)
+    ca_embed = Flatten()(Embedding(77, 2, input_length=802)(concatenate([partition, action_toCA])))
+    tract_embed = Flatten()(Embedding(801, 4, input_length=1)(action_tract))
     
     x = concatenate([ca_embed, tract_embed])
     x = Dense(200, activation='relu')(x)
@@ -101,27 +103,56 @@ if __name__ == '__main__':
     
     model = Model(inputs=[partition, action_tract, action_toCA], outputs=[output])
     model.compile(optimizer='rmsprop', loss='mse')
-    
+
+
     print "# sampling"
     while True:
         iter_cnt += 1
         
-        sample_res = sample_once()
-        if sample_res == None:
-            continue
-        t, prv_caid, new_caid = sample_res
-        # update communities features for evaluation
-        CommunityArea.updateCAFeatures(*sample_res)
-        # Get updated variance of population distribution
-        pop_variance2 = np.var(CommunityArea.population)
-        # evaluate new partition
-        mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
-        # Calculate acceptance probability --> Put on log scale
-        # calculate f ('energy') of current and proposed states
-        F1 = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
-        F2 = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+        i = 0
+        action_tracts = []
+        action_toCAs = []
+        partitions = []
+        gains = []
+        curPartition = Tract.getPartition()
+        # random sample a batch for Q-learning
+        while i < 32:
+            state = Tract.getPartition()
+            sample_res = sample_once()
+            if sample_res == None:
+                continue
+
+            t, prv_caid, new_caid = sample_res
+            # update communities features for evaluation
+            CommunityArea.updateCAFeatures(*sample_res)
+            # Get updated variance of population distribution
+            pop_variance2 = np.std(CommunityArea.population)
+            # evaluate new partition
+            mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+            # Calculate acceptance probability --> Put on log scale
+            # calculate f ('energy') of current and proposed states
+            F1 = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
+            F2 = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+            gain = 1 / (1 + math.exp(F2 - F1))
+
+            partitions.append(state)
+            action_tracts.append(Tract.getTractPosID(t))
+            action_toCAs.append(new_caid-1)
+            gains.append(gain)
+
+            Tract.updateBoundarySet(t)
+            i += 1
+            cnt += 1
+
+        print "fit model"
+        model.fit(x={'partition': np.array(partitions)-1, 
+                     'action_target_tract': np.array(action_tracts), 
+                     'action_new_CA': np.array(action_toCAs)}, 
+                    y=np.array(gains))
+
+
         # Compute gamma for acceptance probability
-        gamma = get_gamma(f1=F1,f2=F2,log=True)
+        gamma = get_gamma(f_current=F1, f_proposed=F2, log=True)
         # Generate random number on log scale
         sr = np.log(random.random())
 #        update_sample_weight_func(mae1, mae2, t)

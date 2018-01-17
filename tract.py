@@ -41,6 +41,8 @@ class Tract:
             trt = Tract(tid, shp, rec)
             tracts[tid] = trt
         cls.tracts = tracts
+        # sorted index of all tract IDs
+        cls.tract_index = sorted(cls.tracts.keys())
         # calculate spatial adjacency graph
         cls.spatialAdjacency()
         return tracts
@@ -129,7 +131,22 @@ class Tract:
         ax.axis('off')
         plt.tight_layout()
         plt.savefig("adjacency.png")
-        
+
+
+    @classmethod
+    def getPartition(cls):
+        return [cls.tracts[k].CA for k in cls.tract_index]
+
+    @classmethod
+    def getTractPosID(cls, t):
+        return cls.tract_index.index(t.id)
+
+    @classmethod
+    def restorePartition(cls, partition):
+        for i, k in enumerate(cls.tract_index):
+            cls.tracts[k].CA = partition[i]
+
+
 
 def compare_tract_shapefiles():
     """There are two version of tract level shapfiles.
