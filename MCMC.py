@@ -141,7 +141,7 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
 
 
 
-
+    tmp = np.sum(ca_choice_probs)
     # Sample community -- probabilities derived from softmax of regression errors
     if query_ca_prob is not None:
         sample_ca_id = query_ca_prob
@@ -256,6 +256,10 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
             if iter_cnt % 500 == 0:
                 CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
                 CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
+                plotMcmcDiagnostics(mae_index=mae_index,
+                                    error_array=mae_series,
+                                    variance_array=var_series,
+                                    fname='mcmc-diagnostics-{}'.format(iter_cnt))
 
         else:
             # restore communities features
@@ -263,7 +267,7 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
 
-def mcmcSamplerSoftmax():
+def mcmcSamplerSoftmax(project_name):
     """
     MCMC search for optimal solution.
     Input:
@@ -327,8 +331,8 @@ def mcmcSamplerSoftmax():
         mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae=mae1, T=T, penalty=None, log=True)
-        f_proposed = get_f(ae=mae2, T=T, penalty=None, log=True)
+        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
+        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
         # We need to compute Q to get gamma, since Q is non-symmetric under the softmax sampling scheme
         log_q_proposed_given_current = log_sample_ca_prob + log_tract_prob
 
@@ -364,25 +368,29 @@ def mcmcSamplerSoftmax():
 
             cnt = 0  # reset counter
 
-            if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
+            if len(mae_series) > 100 and np.std(mae_series[-25:]) < 3:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                       len(mae_series) / float(iter_cnt))
-                CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
-                CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-final.png")
+                CommunityArea.visualizePopDist(fname=project_name+'-final-pop-distribution')
 
                 break
-
-            if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
-                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
 
         else:
             # restore community-tract structure to original state
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
             Tract.updateBoundarySet(t)
+
+        if iter_cnt % 100 == 0:
+            CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-{}.png".format(iter_cnt))
+            CommunityArea.visualizePopDist(fname=project_name+'-pop-distribution-iter-{}'.format(iter_cnt))
+            plotMcmcDiagnostics(mae_index=mae_index,
+                                error_array=mae_series,
+                                variance_array=var_series,
+                                fname=project_name+'-mcmc-diagnostics-{}'.format(iter_cnt))
 
 def leaveOneOut_evaluation(year, info_str="optimal boundary"):
     """
@@ -439,20 +447,23 @@ def adaptive_MCMC():
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
 
 
-def MCMC_softmax_proposal():
+def MCMC_softmax_proposal(project_name):
     initialize()
     # loo evaluation test data on original boundary
     leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    mcmcSamplerSoftmax()
-    plotMcmcDiagnostics(mae_index=mae_index, error_array=mae_series, variance_array=var_series)
+    mcmcSamplerSoftmax(project_name)
+    plotMcmcDiagnostics(mae_index=mae_index,
+                        error_array=mae_series,
+                        variance_array=var_series,
+                        fname=project_name+"-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)
 
 
 
 if __name__ == '__main__':
-    MCMC_softmax_proposal()
+    MCMC_softmax_proposal('variance-penalty')
 
 
