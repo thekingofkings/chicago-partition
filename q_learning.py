@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 from MCMC import leaveOneOut_evaluation, get_f, get_gamma
-from keras.layers import Input, Embedding, Dense
+from keras.layers import Input, Embedding, Dense, concatenate
 from keras.models import Model 
 
 
@@ -86,7 +86,21 @@ if __name__ == '__main__':
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
     
-
+    partition = Input(shape=(801,), dtype='int32', name='partition')
+    action_tract = Input(shape=(1,), dtype='int32', name='action_target_tract')
+    action_toCA = Input(shape=(1,), dtype='int32', name='action_new_CA')
+    
+    ca_embed = Embedding(77, 2, input_length=802)(concatenate([partition, action_toCA]))
+    tract_embed = Embedding(801, 4, input_length=1)(action_tract)
+    
+    x = concatenate([ca_embed, tract_embed])
+    x = Dense(200, activation='relu')(x)
+    x = Dense(100, activation='relu')(x)
+    
+    output = Dense(1, activation='sigmoid', name='delta_error')(x)
+    
+    model = Model(inputs=[partition, action_tract, action_toCA], outputs=[output])
+    model.compile(optimizer='rmsprop', loss='mse')
     
     print "# sampling"
     while True:
