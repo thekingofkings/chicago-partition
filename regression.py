@@ -13,6 +13,24 @@ import statsmodels.api as sm
 from sklearn.model_selection import LeaveOneOut
 from sklearn import linear_model
 
+def computeError(y_true,y_hat,metric='mse'):
+
+    residual = y_true - y_hat
+
+    if metric == 'mse':
+        error_metric = np.mean(np.power(residual,2))
+    elif metric == 'sse':
+        error_metric = np.sum(np.power(residual, 2))
+    elif metric == 'mae':
+        error_metric = np.mean(np.abs(residual))
+    elif metric == 'mre':
+        error_metric = np.sum(np.abs(residual)) / np.sum(y_true)
+    else:
+        raise Exception("error metric must be mse, sse, or mre")
+
+    return error_metric
+
+
 def NB_regression_evaluation(df, featureNames, targetName):
     """
     Use python statsmodels lib to evaluate NB regression.

@@ -109,7 +109,7 @@ def softmax(x,log=False):
         return exp_X / np.sum(exp_X)
 
 
-def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None):
+def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None,log=False):
     """
     Function to hierarchicaly sample (1) Communities, (2) tracts within the given community
     :param errors: Vector of errors for softmax
@@ -132,13 +132,21 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
     """
 
     # Compute softmax of errors for sampling probabilities
-    ca_probs = softmax(errors, log=False)
+    ca_probs = softmax(errors, log=log)
+
+    if log:
+        ca_choice_probs = np.exp(ca_probs)
+    else:
+        ca_choice_probs = ca_probs
+
+
+
 
     # Sample community -- probabilities derived from softmax of regression errors
     if query_ca_prob is not None:
         sample_ca_id = query_ca_prob
     else:
-        sample_ca_id = np.random.choice(a=community_structure_dict.keys(), size=1, replace=False, p=ca_probs)[0]
+        sample_ca_id = np.random.choice(a=community_structure_dict.keys(), size=1, replace=False, p=ca_choice_probs)[0]
 
     # Collect tracts within sampled community area that lie on community boundary
     sample_ca_boundary_tracts = []
@@ -149,7 +157,10 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
     # Sample tract (on boundary) within previously sampled community area
     t = np.random.choice(a=sample_ca_boundary_tracts, size=1, replace=False)[0]
     sample_ca_prob = ca_probs.ix[sample_ca_id]
+
     tract_prob = 1 / float(len(sample_ca_boundary_tracts))
+    if log:
+        tract_prob = np.log(tract_prob)
 
     return t, sample_ca_id, sample_ca_prob, tract_prob
 
@@ -270,9 +281,10 @@ def mcmcSamplerSoftmax():
 
         ## Hierearchicaly sample community, then boundary tract within community
 
-        t, sample_ca_id ,sample_ca_prob, tract_prob = softmaxSamplingScheme(errors=errors1,
+        t, sample_ca_id ,log_sample_ca_prob, log_tract_prob = softmaxSamplingScheme(errors=errors1,
                                                                             community_structure_dict=CommunityArea.CAs,
-                                                                            boundary_tracts=Tract.boundarySet)
+                                                                            boundary_tracts=Tract.boundarySet,
+                                                                            log=True)
 
         """
         # Monitor one tract for debugging
@@ -315,17 +327,18 @@ def mcmcSamplerSoftmax():
         mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
-        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
+        f_current = get_f(ae=mae1, T=T, penalty=None, log=True)
+        f_proposed = get_f(ae=mae2, T=T, penalty=None, log=True)
         # We need to compute Q to get gamma, since Q is non-symmetric under the softmax sampling scheme
-        log_q_proposed_given_current = np.log(sample_ca_prob) + np.log(tract_prob)
+        log_q_proposed_given_current = log_sample_ca_prob + log_tract_prob
 
         # Reverse conditioning to get q(z | z'); i.e., probability of current state given proposed state
-        _, _, sample_ca_prob_reverse, tract_prob_reverse = softmaxSamplingScheme(errors=errors2,
+        _, _, log_sample_ca_prob_reverse, log_tract_prob_reverse = softmaxSamplingScheme(errors=errors2,
                                                                                  community_structure_dict=CommunityArea.CAs,
                                                                                  boundary_tracts=Tract.boundarySet,
-                                                                                 query_ca_prob=prv_caid)
-        log_q_current_given_proposed = np.log(sample_ca_prob_reverse) + np.log(tract_prob_reverse)
+                                                                                 query_ca_prob=prv_caid,
+                                                                                 log=True)
+        log_q_current_given_proposed = log_sample_ca_prob_reverse + log_tract_prob_reverse
 
         # Compute gamma for acceptance probability
         gamma = get_gamma(f_current=f_current,
@@ -344,7 +357,7 @@ def mcmcSamplerSoftmax():
             var_series.append(pop_variance2)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
-            mae1, pop_variance1 = mae2, pop_variance2
+            mae1, pop_variance1,errors1 = mae2, pop_variance2,errors2
             mae_index.append(iter_cnt)
 
             # update tract boundary set for next round sampling
