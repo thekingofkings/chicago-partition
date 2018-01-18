@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 import math
-from MCMC import leaveOneOut_evaluation, get_f, get_gamma
+from MCMC import leaveOneOut_evaluation, get_f
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 
@@ -54,7 +54,7 @@ def sample_once():
     Output:
         The tract and two effected CAs, if the sample is valid.
         Return None, otherwise.
-    """
+    """    
     # sample a boundary tract
     t = random.sample(Tract.boundarySet, 1)[0]
     t_flip_candidate = set()
@@ -75,9 +75,7 @@ def sample_once():
     if len(CommunityArea.CAs[new_caid].tracts) > CA_maxsize  \
         or len(CommunityArea.CAs[prv_caid].tracts) <= 1:
         return None
-    t.CA = new_caid
     return (t, prv_caid, new_caid)
-
 
 
 if __name__ == '__main__':
@@ -106,6 +104,7 @@ if __name__ == '__main__':
 
 
     print "# sampling"
+    F_cur = get_f(ae=mae1, T=T, penalty=pop_variance1)
     while True:
         iter_cnt += 1
         
@@ -123,6 +122,7 @@ if __name__ == '__main__':
                 continue
 
             t, prv_caid, new_caid = sample_res
+            t.CA = new_caid
             # update communities features for evaluation
             CommunityArea.updateCAFeatures(*sample_res)
             # Get updated variance of population distribution
@@ -144,20 +144,55 @@ if __name__ == '__main__':
             i += 1
             cnt += 1
 
-        print "fit model"
+        print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
         model.fit(x={'partition': np.array(partitions)-1, 
                      'action_target_tract': np.array(action_tracts), 
                      'action_new_CA': np.array(action_toCAs)}, 
-                    y=np.array(gains))
+                    y=np.array(gains),
+                    epochs=2)
 
+        # reset the permutation of partitions
+        Tract.restorePartition(curPartition)
+        Tract.initializeBoundarySet()
+        CommunityArea.CAs = {}
+        CommunityArea.createAllCAs(Tract.tracts)
+        
+        j = 0
+        gain_highest = 0.2
+        action_tract = None
+        action_ca = None
+        gain_preds = []
+        while j < 32:
+            action = sample_once()
+            if action is None:
+                continue
+            t, prv_caid, new_caid = action
+            gain_pred = model.predict(x={'partition': (np.array(curPartition)-1)[None],
+                                         'action_target_tract': np.array(Tract.getTractPosID(t))[None],
+                                         'action_new_CA': np.array(new_caid-1)[None]})
+            gain_preds.append(gain_pred)
+            if gain_pred > gain_highest:
+                gain_highest = gain_pred
+                action_tract = t
+                action_ca = new_caid
+            
+            j += 1
+        print "Q function esimate gain_pred min {}, mean {}, max {}".format(np.min(gain_preds),
+                                                np.mean(gain_preds), np.max(gain_preds))
 
-        # Compute gamma for acceptance probability
-        gamma = get_gamma(f_current=F1, f_proposed=F2, log=True)
-        # Generate random number on log scale
-        sr = np.log(random.random())
-#        update_sample_weight_func(mae1, mae2, t)
-
-        if sr < gamma: # made progress
+        # take the best action
+        if action_tract is None or action_ca is None:
+            print "!== Did not find an action to improve within 32 trials. Restart"
+            continue
+        else:
+            prv_caid = action_tract.CA
+            action_tract.CA = action_ca
+            Tract.updateBoundarySet(action_tract)
+            CommunityArea.updateCAFeatures(action_tract, prv_caid, action_ca)
+            # Get updated variance of population distribution
+            pop_variance2 = np.std(CommunityArea.population)
+            # evaluate new partition
+            mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
             var_series.append(pop_variance2)
             print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
@@ -165,9 +200,6 @@ if __name__ == '__main__':
             mae1, pop_variance1 = mae2, pop_variance2
             mae_index.append(iter_cnt)
 
-            # update tract boundary set for next round sampling 
-            Tract.updateBoundarySet(t)
-            
             if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
@@ -180,8 +212,3 @@ if __name__ == '__main__':
             if iter_cnt % 500 == 0:
                 CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
                 CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
-
-        else:
-            # restore communities features
-            t.CA = prv_caid
-            CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
