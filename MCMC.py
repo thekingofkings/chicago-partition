@@ -182,7 +182,7 @@ def plotMcmcDiagnostics(mae_index,error_array,f_array,variance_array,fname='mcmc
 
 
 
-def mcmcSamplerUniform(sample_func, update_sample_weight_func):
+def mcmcSamplerUniform(sample_func, update_sample_weight_func,project_name):
     """
     MCMC search for optimal solution.
     Input:
@@ -228,6 +228,10 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         # calculate f ('energy') of current and proposed states
         f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True,lmbda=lmbda)
         f_proposed = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True,lmbda=lmbda)
+
+        if iter_cnt == 1:
+            # Initialize f series
+            f_series.append(f_current)
         # Compute gamma for acceptance probability
         gamma = get_gamma(f_current=f_current,f_proposed=f_proposed,log=True)
         # Generate random number on log scale
@@ -237,6 +241,7 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         if sr < gamma: # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
+            f_series.append(f_proposed)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_variance1 = mae2, pop_variance2
@@ -245,28 +250,30 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
-            
-            if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
+
+            if len(f_series) > 100 and np.std(f_series[-25:]) < 3:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
-                                                len(mae_series) / float(iter_cnt))
-                CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
-                CommunityArea.visualizePopDist(fname='final-pop-distribution')
-                break
+                                                      len(mae_series) / float(iter_cnt))
+                CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-final.png")
+                CommunityArea.visualizePopDist(fname=project_name+'-final-pop-distribution')
 
-            if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
-                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
-                plotMcmcDiagnostics(mae_index=mae_index,
-                                    error_array=mae_series,
-                                    variance_array=var_series,
-                                    fname='mcmc-diagnostics-{}'.format(iter_cnt))
+                break
 
         else:
             # restore communities features
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
+
+        if iter_cnt % 100 == 0:
+            CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-{}.png".format(iter_cnt))
+            CommunityArea.visualizePopDist(fname=project_name+'-pop-distribution-iter-{}'.format(iter_cnt))
+            plotMcmcDiagnostics(mae_index=mae_index,
+                                error_array=mae_series,
+                                variance_array=var_series,
+                                f_array = f_series,
+                                fname=project_name+'-mcmc-diagnostics-{}'.format(iter_cnt))
 
 
 def mcmcSamplerSoftmax(project_name):
