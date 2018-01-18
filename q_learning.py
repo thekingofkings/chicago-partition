@@ -109,7 +109,6 @@ if __name__ == '__main__':
 
 
     print "# sampling"
-    F_cur = get_f(ae=mae1, T=T, penalty=pop_variance1)
     while True:
         iter_cnt += 1
         
@@ -119,6 +118,8 @@ if __name__ == '__main__':
         partitions = []
         gains = []
         curPartition = Tract.getPartition()
+
+        F_cur = get_f(ae=mae1, T=T, penalty=pop_variance1)
         # random sample a batch for Q-learning
         while i < 32:
             state = Tract.getPartition()
@@ -136,9 +137,8 @@ if __name__ == '__main__':
             mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             # Calculate acceptance probability --> Put on log scale
             # calculate f ('energy') of current and proposed states
-            F1 = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
-            F2 = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
-            gain = 1 / (1 + math.exp(F2 - F1))
+            F_next = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+            gain = 1 / (1 + math.exp(- F_next + F_cur))
 
             partitions.append(state)
             action_tracts.append(Tract.getTractPosID(t))
@@ -148,6 +148,7 @@ if __name__ == '__main__':
             Tract.updateBoundarySet(t)
             i += 1
             cnt += 1
+            F_cur = F_next
 
         print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
         model.fit(x={'partition': np.array(partitions)-1, 
@@ -164,7 +165,7 @@ if __name__ == '__main__':
         CommunityArea.createAllCAs(Tract.tracts)
         
         j = 0
-        gain_highest = 0.2
+        gain_highest = 0.5
         action_tract = None
         action_ca = None
         gain_preds = []
