@@ -20,6 +20,7 @@ import math
 from MCMC import leaveOneOut_evaluation, get_f
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
+from keras.callbacks import TensorBoard
 
 
 
@@ -101,6 +102,10 @@ if __name__ == '__main__':
     
     model = Model(inputs=[partition, action_tract, action_toCA], outputs=[output])
     model.compile(optimizer='rmsprop', loss='mse')
+    
+    tbCallback = TensorBoard(log_dir="/tmp/tensorboard_logs", batch_size=32, write_graph=True, 
+                             write_grads=False, write_images=False, embeddings_freq=0,
+                             embeddings_layer_names=None, embeddings_metadata=None)
 
 
     print "# sampling"
@@ -149,7 +154,8 @@ if __name__ == '__main__':
                      'action_target_tract': np.array(action_tracts), 
                      'action_new_CA': np.array(action_toCAs)}, 
                     y=np.array(gains),
-                    epochs=2)
+                    epochs=2,
+                    callbacks=[tbCallback])
 
         # reset the permutation of partitions
         Tract.restorePartition(curPartition)
