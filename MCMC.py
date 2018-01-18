@@ -17,10 +17,18 @@ from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
 
 
-def initialize():
+def initialize(project_name):
     global M, T, lmbda, featureName, targetName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
-        mae_series, mae_index, var_series,pop_variance1,f_series
+        mae_series, mae_index, sd_series,pop_sd_1,f_series,epsilon
     print "# initialize"
+    """
+    epsilon: Dictionary for convergence criteria.
+        - Keys:
+            - acc_len:  minimum number of accepted steps
+            - prev_len: last n (accepted) samples to examine for convergence
+            - f_sd: standard deviation of prev_len
+    """
+    epsilon = {"acc_len":100,"prev_len":50,"f_sd":1.5}
     random.seed(0)
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
@@ -28,18 +36,18 @@ def initialize():
     targetName = 'total'
     M = 100
     T = 10
-    lmbda = .001
+    lmbda = 1
     CA_maxsize = 30
     # Plot original community population distribution
-    CommunityArea.visualizePopDist(fname='orig-pop-distribution')
+    CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
     print "# sampling"
     CA_maxsize = 30
     mae1, _, _,errors1 = NB_regression_training(CommunityArea.features, featureName, targetName)
-    pop_variance1 = np.var(CommunityArea.population)
+    pop_sd_1 = np.std(CommunityArea.population)
     cnt = 0
     iter_cnt = 0
     mae_series = [mae1]
-    var_series = [pop_variance1]
+    sd_series = [pop_sd_1]
     mae_index = [0]
     f_series = []
 
@@ -165,33 +173,40 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
     return t, sample_ca_id, sample_ca_prob, tract_prob
 
 
-def plotMcmcDiagnostics(mae_index,error_array,f_array,variance_array,fname='mcmc-diagnostics'):
+def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,fname='mcmc-diagnostics'):
     #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
+
+    if iter_cnt is None:
+        iter_cnt = "completed"
+
     f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
     axarr[0].plot(mae_index, np.array(error_array))
-    axarr[0].set_title('Mean Absolute Error')
-    axarr[1].plot(mae_index, np.array(variance_array))
-    axarr[1].set_title('Population Variance (over communities)')
+    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
+    axarr[1].plot(mae_index, np.array(std_array))
+    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
     axarr[2].plot(mae_index, f_array)
     axarr[2].set_title('f - lambda = {}'.format(lmbda))
 
-    plt.savefig(fname)
+    plt.savefig("plots/" + fname)
     plt.close()
     plt.clf()
 
 
 
-def mcmcSamplerUniform(sample_func, update_sample_weight_func,project_name):
-    """
+def mcmcSamplerUniform(sample_func,
+                       update_sample_weight_func,
+                       project_name):
+    """=
     MCMC search for optimal solution.
     Input:
         sample_func is the sample proposal method.
         update_sample_weight_func updates sampling auxilary variables.
+
     Output:
         Optimal partition plot and training error decreasing trend.
     """
-    global mae1, cnt, iter_cnt, pop_variance1
+    global mae1, cnt, iter_cnt, pop_sd_1
     print "# sampling"
     while cnt <= M:
         cnt += 1
@@ -221,18 +236,19 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func,project_name):
         t.CA = new_caid
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         # Get updated variance of population distribution
-        pop_variance2 = np.var(CommunityArea.population)
+        pop_sd_2 = np.std(CommunityArea.population)
         # evaluate new partition
         mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True,lmbda=lmbda)
-        f_proposed = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True,lmbda=lmbda)
+        f_current = get_f(ae = mae1, T=T,penalty=pop_sd_1,log=True,lmbda=lmbda)
+        f_proposed = get_f(ae = mae2, T=T,penalty=pop_sd_2,log=True,lmbda=lmbda)
 
         if iter_cnt == 1:
             # Initialize f series
             f_series.append(f_current)
-        # Compute gamma for acceptance probability
+        # Compute gamma for acceptance probabil
+        # ity
         gamma = get_gamma(f_current=f_current,f_proposed=f_proposed,log=True)
         # Generate random number on log scale
         sr = np.log(random.random())
@@ -240,24 +256,24 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func,project_name):
 
         if sr < gamma: # made progress
             mae_series.append(mae2)
-            var_series.append(pop_variance2)
+            sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
-            mae1, pop_variance1 = mae2, pop_variance2
+            mae1, pop_sd_1 = mae2, pop_sd_2
             mae_index.append(iter_cnt)
 
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
 
-            if len(f_series) > 100 and np.std(f_series[-25:]) < 3:
+            if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                       len(mae_series) / float(iter_cnt))
-                CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-final.png")
-                CommunityArea.visualizePopDist(fname=project_name+'-final-pop-distribution')
+                CommunityArea.visualizeCAs(iter_cnt=None,fname=project_name+"-CAs-iter-final.png")
+                CommunityArea.visualizePopDist(iter_cnt=None,fname=project_name+'-pop-distribution-final')
 
                 break
 
@@ -267,25 +283,27 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func,project_name):
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
         if iter_cnt % 100 == 0:
-            CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-{}.png".format(iter_cnt))
-            CommunityArea.visualizePopDist(fname=project_name+'-pop-distribution-iter-{}'.format(iter_cnt))
-            plotMcmcDiagnostics(mae_index=mae_index,
+            CommunityArea.visualizeCAs(iter_cnt=iter_cnt,
+                                       fname=project_name+"-CAs-iter-progress.png")
+            CommunityArea.visualizePopDist(iter_cnt=iter_cnt,
+                                           fname=project_name+'-pop-distribution-iter-progress')
+            plotMcmcDiagnostics(iter_cnt=iter_cnt,
+                                mae_index=mae_index,
                                 error_array=mae_series,
-                                variance_array=var_series,
+                                std_array=sd_series,
                                 f_array = f_series,
-                                fname=project_name+'-mcmc-diagnostics-{}'.format(iter_cnt))
+                                fname=project_name+'-mcmc-diagnostics-progess')
 
 
 def mcmcSamplerSoftmax(project_name):
     """
     MCMC search for optimal solution.
     Input:
-        sample_func is the sample proposal method.
-        update_sample_weight_func updates sampling auxilary variables.
+        project_name: prefix for output files
     Output:
         Optimal partition plot and training error decreasing trend.
     """
-    global mae1, errors1, cnt, iter_cnt, pop_variance1
+    global mae1, errors1, cnt, iter_cnt, pop_sd_1
     print "# sampling"
     while cnt <= M:
         cnt += 1
@@ -335,13 +353,13 @@ def mcmcSamplerSoftmax(project_name):
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
         Tract.updateBoundarySet(t)
         # Get updated variance of population distribution
-        pop_variance2 = np.var(CommunityArea.population)
+        pop_sd_2 = np.std(CommunityArea.population)
         # evaluate new partition
         mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True,lmbda=lmbda)
-        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True,lmbda=lmbda)
+        f_current = get_f(ae=mae1, T=T, penalty=pop_sd_1, log=True,lmbda=lmbda)
+        f_proposed = get_f(ae=mae2, T=T, penalty=pop_sd_2, log=True,lmbda=lmbda)
 
         if iter_cnt == 1:
             # Initialize f series
@@ -371,24 +389,25 @@ def mcmcSamplerSoftmax(project_name):
 
         if sr < gamma:  # made progress
             mae_series.append(mae2)
-            var_series.append(pop_variance2)
+            sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
-            mae1, pop_variance1,errors1 = mae2, pop_variance2,errors2
+            mae1, pop_sd_1,errors1 = mae2, pop_sd_2,errors2
             mae_index.append(iter_cnt)
 
             # update tract boundary set for next round sampling
 
             cnt = 0  # reset counter
 
-            if len(f_series) > 100 and np.std(f_series[-25:]) < 3:
+            if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                       len(mae_series) / float(iter_cnt))
-                CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-final.png")
-                CommunityArea.visualizePopDist(fname=project_name+'-final-pop-distribution')
+                CommunityArea.visualizeCAs(iter_cnt=None,fname=project_name+"-CAs-iter-final.png")
+                CommunityArea.visualizePopDist(iter_cnt=None,fname=project_name+'-pop-distribution-final')
+
 
                 break
 
@@ -399,17 +418,20 @@ def mcmcSamplerSoftmax(project_name):
             Tract.updateBoundarySet(t)
 
         if iter_cnt % 100 == 0:
-            CommunityArea.visualizeCAs(fname=project_name+"-CAs-iter-{}.png".format(iter_cnt))
-            CommunityArea.visualizePopDist(fname=project_name+'-pop-distribution-iter-{}'.format(iter_cnt))
-            plotMcmcDiagnostics(mae_index=mae_index,
+            CommunityArea.visualizeCAs(iter_cnt=iter_cnt,
+                                       fname=project_name + "-CAs-iter-progress.png")
+            CommunityArea.visualizePopDist(iter_cnt=iter_cnt,
+                                           fname=project_name + '-pop-distribution-iter-progress')
+            plotMcmcDiagnostics(iter_cnt=iter_cnt,
+                                mae_index=mae_index,
                                 error_array=mae_series,
-                                variance_array=var_series,
-                                f_array = f_series,
-                                fname=project_name+'-mcmc-diagnostics-{}'.format(iter_cnt))
+                                std_array=sd_series,
+                                f_array=f_series,
+                                fname=project_name + '-mcmc-diagnostics-progess')
 
 def leaveOneOut_evaluation(year, info_str="optimal boundary"):
     """
-    Leave-one-out evaluation the current partitino with next year crime rate.
+    Leave-one-out evaluation the current partition with next year crime rate.
     """
     CommunityArea._initializeCAfeatures(crimeYear=year)
     featureName = CommunityArea.featureNames
@@ -419,15 +441,20 @@ def leaveOneOut_evaluation(year, info_str="optimal boundary"):
     
     
 
-def naive_MCMC():
-    initialize()
+def naive_MCMC(project_name):
+    initialize(project_name)
     # loo evaluation test data on original boundary
     leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1)
-    plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
+    mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name)
+    plotMcmcDiagnostics(iter_cnt=None,
+                        mae_index=mae_index,
+                        error_array=mae_series,
+                        std_array=sd_series,
+                        f_array=f_series,
+                        fname=project_name + "-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)
 
 
@@ -459,27 +486,30 @@ def adaptive_MCMC():
             tractWeights[t.id] *= 1/0.8
 
     mcmcSamplerUniform(adaptive_sample, update_tractWeight)
-    plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,variance_array=var_series)
+    plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,std_array=sd_series)
 
 
 def MCMC_softmax_proposal(project_name):
-    initialize()
+    initialize(project_name)
     # loo evaluation test data on original boundary
     leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerSoftmax(project_name)
-    plotMcmcDiagnostics(mae_index=mae_index,
+    plotMcmcDiagnostics(iter_cnt=None,
+                        mae_index=mae_index,
                         error_array=mae_series,
                         f_array=f_series,
-                        variance_array=var_series,
+                        std_array=sd_series,
                         fname=project_name+"-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)
 
 
 
 if __name__ == '__main__':
-    MCMC_softmax_proposal('variance-penalty')
+
+    MCMC_softmax_proposal('softmax-sampler')
+    #naive_MCMC('naive-sampler')
 
 

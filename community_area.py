@@ -107,9 +107,12 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, CAs=None, fname="CAs.png"):
+    def visualizeCAs(cls, iter_cnt, CAs=None, fname="CAs.png"):
         if CAs == None:
             CAs = cls.CAs
+        if iter_cnt is None:
+            iter_cnt = "completed"
+
         from descartes import PolygonPatch
         f = plt.figure(figsize=(6,6))
         ax = f.gca()
@@ -118,15 +121,19 @@ class CommunityArea:
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
-        plt.savefig(fname)
+        plt.title('Community Structure -- Iterations: {}'.format(iter_cnt))
+        plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
 
     @classmethod
-    def visualizePopDist(cls,fname):
+    def visualizePopDist(cls,fname,iter_cnt):
+        if iter_cnt is None:
+            iter_cnt = "completed"
         pop_df = pd.DataFrame(cls.population)
         pop_df.plot(kind='barh', figsize=(16, 12))
-        plt.savefig(fname)
+        plt.title('Population Distribution -- Iterations: {}'.format(iter_cnt))
+        plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
         
