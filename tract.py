@@ -88,12 +88,20 @@ class Tract:
                     if intersec.geom_type != 'Point':
                         focalTract.neighbors.append(otherTract)
         # calculate whether the tract is on CA boundary
+        cls.initializeBoundarySet()
+
+    @classmethod
+    def initializeBoundarySet(cls):
+        """
+        Initialize the boundary set on given partitions.
+        """
         cls.boundarySet = set()
         for _, t in cls.tracts.items():
             for n in t.neighbors:
                 if t.CA != n.CA:
                     t.onEdge = True
                     cls.boundarySet.add(t)
+                    break
 
     @classmethod
     def updateBoundarySet(cls, tract):
@@ -108,8 +116,9 @@ class Tract:
                     onEdge = True
                     break
             if not onEdge:
-                t.onEdge = False
-                cls.boundarySet.remove(t)
+                if t.onEdge:
+                    t.onEdge = False
+                    cls.boundarySet.remove(t)
             else:
                 t.onEdge = True
                 cls.boundarySet.add(t)
