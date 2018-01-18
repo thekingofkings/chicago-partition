@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 
 
 def initialize():
-    global M, T, featureName, targetName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
-        mae_series, mae_index, var_series,pop_variance1
+    global M, T, lmbda, featureName, targetName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
+        mae_series, mae_index, var_series,pop_variance1,f_series
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
@@ -28,6 +28,7 @@ def initialize():
     targetName = 'total'
     M = 100
     T = 10
+    lmbda = .001
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(fname='orig-pop-distribution')
@@ -40,9 +41,10 @@ def initialize():
     mae_series = [mae1]
     var_series = [pop_variance1]
     mae_index = [0]
+    f_series = []
 
 
-def get_f(ae,T,penalty=None,log=True):
+def get_f(ae,T,penalty=None,log=True,lmbda=1.0):
     """
     compute the "energy function F".
 
@@ -50,17 +52,17 @@ def get_f(ae,T,penalty=None,log=True):
     :param T: Temperature parameter
     :param penalty: value to penalize constrain object
     :param log: (Bool) Return f on log scale
+    :param lmbda: regularization on penalty term
     :return: the 'energy' of a given state
     """
     if penalty is None:
-        lmbda = 0
-    else:
-        lmbda = penalty
+        penalty = 0
+
 
     if log:
-        return -(ae + lmbda) / T
+        return -(ae + lmbda*penalty) / T
     else:
-        return np.exp(-(ae + lmbda) / T)
+        return np.exp(-(ae + lmbda*penalty) / T)
 
 def get_gamma(f_current,f_proposed,symmetric=True,log=True,q_proposed_given_current=None,q_current_given_proposed=None):
     """
@@ -140,8 +142,6 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
         ca_choice_probs = ca_probs
 
 
-
-    tmp = np.sum(ca_choice_probs)
     # Sample community -- probabilities derived from softmax of regression errors
     if query_ca_prob is not None:
         sample_ca_id = query_ca_prob
@@ -165,14 +165,16 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
     return t, sample_ca_id, sample_ca_prob, tract_prob
 
 
-def plotMcmcDiagnostics(mae_index,error_array,variance_array,fname='mcmc-diagnostics'):
+def plotMcmcDiagnostics(mae_index,error_array,f_array,variance_array,fname='mcmc-diagnostics'):
     #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
-    f, axarr = plt.subplots(2, sharex=True,figsize=(12,8))
+    f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
     axarr[0].plot(mae_index, np.array(error_array))
     axarr[0].set_title('Mean Absolute Error')
     axarr[1].plot(mae_index, np.array(variance_array))
     axarr[1].set_title('Population Variance (over communities)')
+    axarr[2].plot(mae_index, f_array)
+    axarr[2].set_title('f - lambda = {}'.format(lmbda))
 
     plt.savefig(fname)
     plt.close()
@@ -224,8 +226,8 @@ def mcmcSamplerUniform(sample_func, update_sample_weight_func):
         mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True)
-        f_proposed = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+        f_current = get_f(ae = mae1, T=T,penalty=pop_variance1,log=True,lmbda=lmbda)
+        f_proposed = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True,lmbda=lmbda)
         # Compute gamma for acceptance probability
         gamma = get_gamma(f_current=f_current,f_proposed=f_proposed,log=True)
         # Generate random number on log scale
@@ -331,8 +333,12 @@ def mcmcSamplerSoftmax(project_name):
         mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
-        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True)
-        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True)
+        f_current = get_f(ae=mae1, T=T, penalty=pop_variance1, log=True,lmbda=lmbda)
+        f_proposed = get_f(ae=mae2, T=T, penalty=pop_variance2, log=True,lmbda=lmbda)
+
+        if iter_cnt == 1:
+            # Initialize f series
+            f_series.append(f_current)
         # We need to compute Q to get gamma, since Q is non-symmetric under the softmax sampling scheme
         log_q_proposed_given_current = log_sample_ca_prob + log_tract_prob
 
@@ -359,6 +365,7 @@ def mcmcSamplerSoftmax(project_name):
         if sr < gamma:  # made progress
             mae_series.append(mae2)
             var_series.append(pop_variance2)
+            f_series.append(f_proposed)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_variance1,errors1 = mae2, pop_variance2,errors2
@@ -368,7 +375,7 @@ def mcmcSamplerSoftmax(project_name):
 
             cnt = 0  # reset counter
 
-            if len(mae_series) > 100 and np.std(mae_series[-25:]) < 3:
+            if len(f_series) > 100 and np.std(f_series[-25:]) < 3:
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
@@ -390,6 +397,7 @@ def mcmcSamplerSoftmax(project_name):
             plotMcmcDiagnostics(mae_index=mae_index,
                                 error_array=mae_series,
                                 variance_array=var_series,
+                                f_array = f_series,
                                 fname=project_name+'-mcmc-diagnostics-{}'.format(iter_cnt))
 
 def leaveOneOut_evaluation(year, info_str="optimal boundary"):
@@ -457,6 +465,7 @@ def MCMC_softmax_proposal(project_name):
     mcmcSamplerSoftmax(project_name)
     plotMcmcDiagnostics(mae_index=mae_index,
                         error_array=mae_series,
+                        f_array=f_series,
                         variance_array=var_series,
                         fname=project_name+"-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)

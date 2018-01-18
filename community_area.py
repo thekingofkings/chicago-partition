@@ -119,6 +119,8 @@ class CommunityArea:
         ax.axis("off")
         plt.tight_layout()
         plt.savefig(fname)
+        plt.close()
+        plt.clf()
 
     @classmethod
     def visualizePopDist(cls,fname):
