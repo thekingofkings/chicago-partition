@@ -36,7 +36,7 @@ def initialize(project_name):
     targetName = 'total'
     M = 100
     T = 10
-    lmbda = 1
+    lmbda = .5
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
