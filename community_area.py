@@ -107,7 +107,7 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, iter_cnt, CAs=None, fname="CAs.png"):
+    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png"):
         if CAs == None:
             CAs = cls.CAs
         if iter_cnt is None:
@@ -127,7 +127,7 @@ class CommunityArea:
         plt.clf()
 
     @classmethod
-    def visualizePopDist(cls,fname,iter_cnt):
+    def visualizePopDist(cls,fname,iter_cnt=None):
         if iter_cnt is None:
             iter_cnt = "completed"
         pop_df = pd.DataFrame(cls.population)

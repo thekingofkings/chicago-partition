@@ -165,7 +165,7 @@ if __name__ == '__main__':
         CommunityArea.createAllCAs(Tract.tracts)
         
         j = 0
-        gain_highest = 0.5
+        gain_highest = 0.4
         action_tract = None
         action_ca = None
         gain_preds = []
@@ -217,5 +217,6 @@ if __name__ == '__main__':
                 break
 
             if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(fname="CAs-iter-{}.png".format(iter_cnt))
-                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt))
+                CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
+                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
+                                               iter_cnt=iter_cnt)
