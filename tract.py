@@ -10,7 +10,7 @@ matplotlib.rc('pdf', fonttype=42)
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
-from feature_utils import retrieve_income_features, retrieve_crime_count
+from feature_utils import retrieve_income_features, retrieve_crime_count, retrieve_house_price_features
 
 
 class Tract:
@@ -73,7 +73,8 @@ class Tract:
         cls.crimeYear = crimeYear
         f, cls.income_description = retrieve_income_features()
         y = retrieve_crime_count(crimeYear)
-        cls.features = f.join(y)
+        price_f = retrieve_house_price_features()
+        cls.features = f.join([y, price_f])
         return cls.features
 
     @classmethod
@@ -207,5 +208,5 @@ def compare_tract_shapefiles():
 if __name__ == '__main__':
 #    t1, t2 = compare_tract_shapefiles()
     trts0 = Tract.createAllTracts()
-    Tract.visualizeTracts()
-    Tract.visualizeTractsAdjacency()
+#    Tract.visualizeTracts()
+#    Tract.visualizeTractsAdjacency()

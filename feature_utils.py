@@ -67,13 +67,13 @@ def retrieve_income_features():
                 row = [cell.value for cell in dataColumns[idx]]
                 income_features.append(row)
     featureDF = pd.DataFrame(data=income_features, index=tractIDs, columns=header)
+    featureDF = featureDF.loc[:,~featureDF.columns.duplicated()]
     header_decode = dict(zip(header, header_description))
     return featureDF, header_decode
 
 
 def retrieve_summarized_income_features(featureDF):
     '''compute features including diversity and percentage'''
-    featureDF = featureDF.loc[:,~featureDF.columns.duplicated()]
     added_features = []
     # calculate percentage for different ethnic population
     # white, black, latino, asian
@@ -137,6 +137,15 @@ def retrieve_crime_count(year=2010):
     Y = pd.read_csv("data/chicago-crime-tract-level-{0}.csv".format(year),
                     header=0, index_col=0)
     return Y
+
+
+
+def retrieve_house_price_features():
+    """
+    Read the intermediate file containing house price features. Refer to 
+    `house_price.py` for more details.
+    """
+    return pd.DataFrame.from_csv("data/house_price_features.df")
 
 
 
