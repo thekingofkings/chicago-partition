@@ -457,6 +457,7 @@ def naive_MCMC(project_name):
                         f_array=f_series,
                         fname=project_name + "-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)
+    Tract.writePartition(fname=project_name + "-final-partition.txt")
 
 
 
@@ -512,7 +513,7 @@ def MCMC_softmax_proposal(project_name):
 
 if __name__ == '__main__':
 
-    MCMC_softmax_proposal('softmax-sampler')
+    MCMC_softmax_proposal('softmax-sampler-v4')
     #naive_MCMC('naive-sampler')
 
 
