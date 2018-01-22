@@ -66,7 +66,9 @@ def NB_regression_training(df, featureNames, targetName,error_metric='mae'):
     model_res = nbmodel.fit()
     y_pred = nbmodel.predict(model_res.params, df[featureNames])
     errors = abs(crimeRate - y_pred)
-    rel_errors = errors / np.max(errors)
+    #rel_errors = errors / np.max(errors)
+    # Transform errors to standard normal scale (subtract mean, divide by standard deviation)
+    rel_errors = (errors - np.mean(errors))/np.std(errors)
     return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate), rel_errors
 
 
