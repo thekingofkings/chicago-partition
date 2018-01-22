@@ -38,9 +38,13 @@ class CommunityArea:
         # one CA feature is a pandas.DataFrame with one row
         feat_series = tract_features.sum(axis=0)
         feat_vals = feat_series.get_values()[None]
-        self.features = pd.DataFrame(feat_vals, columns=feat_series.index.get_values(),
+        fdf = pd.DataFrame(feat_vals, columns=feat_series.index.get_values(),
                                      index=[self.id])
-        
+        # calculate the average house price (training and testing)
+        fdf['train_average_house_price'] = fdf['train_price'] / fdf['train_count']
+        fdf['test_average_house_price'] = fdf['test_price'] / fdf['test_count']
+        self.features= fdf
+        # calculate summarized demo features, such as entropy / percentage 
         if hasattr(CommunityArea, "featureNames"):
             self.features, _ = retrieve_summarized_income_features(self.features)
         else:
@@ -101,7 +105,6 @@ class CommunityArea:
         
         # convert dict of pandas.Series into DataFrame
         cls.features = pd.concat(cls.features_ca_dict.values())
-        X = cls.features
         cls.population = cls.features[cls.populationFeature]
         
 
