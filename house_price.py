@@ -59,8 +59,35 @@ def split_house_data(houses):
     return train_houses, test_houses
 
 
+def calculate_tract_house_price(houseDF, tracts):
+    """
+    Calculate the sum price_per_sqrt and the number of estate within a tract.
+    Input:
+        houseDF - a dataframe of house price and coordinate.
+        tracts - all tracts with their boundary
+    """
+    house_cnt = {}
+    sum_unit_price = {}
+    for idx, house in houseDF.iterrows():
+        coord = Point(house.lon, house.lat)
+        for k, t in tracts.items():
+            if t.polygon.contains(coord):
+                if k not in house_cnt:
+                    house_cnt[k] = 1
+                    sum_unit_price[k] = house.priceSqft
+                else:
+                    house_cnt[k] += 1
+                    sum_unit_price[k] += house.priceSqft
+                break
+    return house_cnt, sum_unit_price
+        
+    
+    
 
 if __name__ == '__main__':
     houses = get_house_price()
     train, test = split_house_data(houses)
+    tracts = Tract.createAllTracts(calculateAdjacency=False)
+    r = calculate_tract_house_price(train, tracts)
+    
     

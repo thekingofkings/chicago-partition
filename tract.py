@@ -31,7 +31,8 @@ class Tract:
         self.onEdge = False
 
     @classmethod
-    def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract"):
+    def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract", 
+                        calculateAdjacency=True):
         cls.sf = shapefile.Reader(fname)
         tracts = {}
         shps = cls.sf.shapes()
@@ -44,7 +45,8 @@ class Tract:
         # sorted index of all tract IDs
         cls.tract_index = sorted(cls.tracts.keys())
         # calculate spatial adjacency graph
-        cls.spatialAdjacency()
+        if calculateAdjacency:
+            cls.spatialAdjacency()
         return tracts
 
     @classmethod
