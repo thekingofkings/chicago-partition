@@ -15,6 +15,7 @@ import random
 import numpy as np
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
+from pandas import Series
 
 
 def initialize(project_name):
@@ -504,6 +505,8 @@ def MCMC_softmax_proposal(project_name):
                         std_array=sd_series,
                         fname=project_name+"-mcmc-diagnostics-final")
     leaveOneOut_evaluation(2011)
+
+    Tract.writePartition(fname=project_name + "-final-partition.txt")
 
 
 

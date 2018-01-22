@@ -155,6 +155,15 @@ class Tract:
         for i, k in enumerate(cls.tract_index):
             cls.tracts[k].CA = partition[i]
 
+    @classmethod
+    def writePartition(cls,fname):
+        f = open("plots/" + fname,'w')
+        tract_ca_assignment = cls.getPartition()
+
+        for i in tract_ca_assignment:
+            f.write(str(i))
+        f.close()
+
 
 
 def compare_tract_shapefiles():
