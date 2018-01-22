@@ -159,11 +159,12 @@ class Tract:
 
     @classmethod
     def writePartition(cls,fname):
-        f = open("plots/" + fname,'w')
+        f = open("output/" + fname,'w')
         tract_ca_assignment = cls.getPartition()
 
         for i in tract_ca_assignment:
             f.write(str(i))
+            f.write("\n")
         f.close()
 
 
