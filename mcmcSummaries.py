@@ -2,6 +2,41 @@ import pandas as pd
 from sklearn.metrics import adjusted_rand_score
 from itertools import combinations, product
 import numpy as np
+import matplotlib.pyplot as plt
+from pandas import Series
+
+
+def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda,fname='mcmc-diagnostics'):
+    #x = range(len(error_array))
+    # Two subplots, the axes array is 1-d
+
+    if iter_cnt is None:
+        iter_cnt = "completed"
+
+    f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
+    axarr[0].plot(mae_index, np.array(error_array))
+    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
+    axarr[1].plot(mae_index, np.array(std_array))
+    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
+    axarr[2].plot(mae_index, f_array)
+    axarr[2].set_title('f - lambda = {}'.format(lmbda))
+
+    plt.savefig("plots/" + fname)
+    plt.close()
+    plt.clf()
+
+
+def writeSimulationOutput(project_name,error,n_iter_conv,accept_rate):
+
+    fname = "output/{}-final-output.txt".format(project_name)
+    f = open(fname,'w')
+    f.write("error: {:.4f}\n".format(error))
+    f.write("iterations: {}\n".format(n_iter_conv))
+    f.write("acceptance rate: {:.4f}\n".format(accept_rate))
+    f.close()
+
+
+
 
 def getPartitionFromFile(fname):
     return pd.read_csv("output/" + fname,header=None,index_col=None).values.flatten()

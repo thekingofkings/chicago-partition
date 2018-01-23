@@ -8,7 +8,7 @@ Created on Tue Jan 16 07:57:36 2018
 Q-learning as adaptive MCMC method
 
 """
-
+from mcmcSummaries import writeSimulationOutput
 from tract import Tract
 from community_area import CommunityArea
 from regression import NB_regression_training, NB_regression_evaluation
@@ -24,9 +24,10 @@ from keras.callbacks import TensorBoard
 
 
 
+
 def initialize():
     global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, pop_variance1, var_series, cnt
+        iter_cnt, pop_variance1, var_series, cnt, project_name
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
@@ -43,6 +44,7 @@ def initialize():
     mae_series = [mae1]
     var_series = [pop_variance1]
     mae_index = [0]
+    project_name = 'q-learning'
 
 
 
@@ -214,6 +216,10 @@ if __name__ == '__main__':
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                writeSimulationOutput(project_name=project_name,
+                                      error=mae_series[-1],
+                                      n_iter_conv=iter_cnt,
+                                      accept_rate=len(mae_series) / float(iter_cnt))
                 break
 
             if iter_cnt % 500 == 0:

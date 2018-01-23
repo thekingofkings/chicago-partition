@@ -14,8 +14,7 @@ from regression import NB_regression_training, NB_regression_evaluation
 import random
 import numpy as np
 from shapely.ops import cascaded_union
-import matplotlib.pyplot as plt
-from pandas import Series
+from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
 
 
 def initialize(project_name):
@@ -174,26 +173,6 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
     return t, sample_ca_id, sample_ca_prob, tract_prob
 
 
-def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,fname='mcmc-diagnostics'):
-    #x = range(len(error_array))
-    # Two subplots, the axes array is 1-d
-
-    if iter_cnt is None:
-        iter_cnt = "completed"
-
-    f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
-    axarr[0].plot(mae_index, np.array(error_array))
-    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
-    axarr[1].plot(mae_index, np.array(std_array))
-    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
-    axarr[2].plot(mae_index, f_array)
-    axarr[2].set_title('f - lambda = {}'.format(lmbda))
-
-    plt.savefig("plots/" + fname)
-    plt.close()
-    plt.clf()
-
-
 
 def mcmcSamplerUniform(sample_func,
                        update_sample_weight_func,
@@ -293,6 +272,7 @@ def mcmcSamplerUniform(sample_func,
                                 error_array=mae_series,
                                 std_array=sd_series,
                                 f_array = f_series,
+                                lmbda=lmbda,
                                 fname=project_name+'-mcmc-diagnostics-progess')
 
 
@@ -428,6 +408,7 @@ def mcmcSamplerSoftmax(project_name):
                                 error_array=mae_series,
                                 std_array=sd_series,
                                 f_array=f_series,
+                                lmbda=lmbda,
                                 fname=project_name + '-mcmc-diagnostics-progess')
 
 def leaveOneOut_evaluation(year, info_str="optimal boundary"):
@@ -455,7 +436,12 @@ def naive_MCMC(project_name):
                         error_array=mae_series,
                         std_array=sd_series,
                         f_array=f_series,
+                        lmbda=lmbda,
                         fname=project_name + "-mcmc-diagnostics-final")
+    writeSimulationOutput(project_name=project_name,
+                          error=mae_series[-1],
+                          n_iter_conv=iter_cnt,
+                          accept_rate=len(mae_series) / float(iter_cnt))
     leaveOneOut_evaluation(2011)
     Tract.writePartition(fname=project_name + "-final-partition.txt")
 
@@ -504,7 +490,12 @@ def MCMC_softmax_proposal(project_name):
                         error_array=mae_series,
                         f_array=f_series,
                         std_array=sd_series,
+                        lmbda=lmbda,
                         fname=project_name+"-mcmc-diagnostics-final")
+    writeSimulationOutput(project_name=project_name,
+                          error=mae_series[-1],
+                          n_iter_conv=iter_cnt,
+                          accept_rate=len(mae_series) / float(iter_cnt))
     leaveOneOut_evaluation(2011)
 
     Tract.writePartition(fname=project_name + "-final-partition.txt")
@@ -513,7 +504,11 @@ def MCMC_softmax_proposal(project_name):
 
 if __name__ == '__main__':
 
-    #MCMC_softmax_proposal('softmax-sampler-v4')
-    naive_MCMC('naive-sampler-v4')
+    n_sim = 4
+    versions = ["v" + str(x+1) for x in range(n_sim)]
+
+    for v in versions:
+        MCMC_softmax_proposal('softmax-sampler-{}'.format(v))
+        naive_MCMC('naive-sampler-{}'.format(v))
 
 
