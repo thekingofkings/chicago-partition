@@ -513,7 +513,7 @@ def MCMC_softmax_proposal(project_name):
 
 if __name__ == '__main__':
 
-    MCMC_softmax_proposal('softmax-sampler-v4')
-    #naive_MCMC('naive-sampler')
+    #MCMC_softmax_proposal('softmax-sampler-v4')
+    naive_MCMC('naive-sampler-v4')
 
 
