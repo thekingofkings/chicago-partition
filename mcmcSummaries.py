@@ -41,6 +41,40 @@ def writeSimulationOutput(project_name,error,n_iter_conv,accept_rate):
 def getPartitionFromFile(fname):
     return pd.read_csv("output/" + fname,header=None,index_col=None).values.flatten()
 
+def getSimulationOutput(fname):
+
+    d = {}
+    with open(fname) as f:
+        for line in f:
+            line_split = line.split(":")
+            d[line_split[0]] = float(line_split[1].strip())
+
+    return d
+
+def getSimulationSummaryStats(project_name,n_sim):
+
+    sims = range(0,n_sim)
+    versions = ['v' + str(x+1) for x in sims]
+
+    output_dicts = []
+    for v in versions:
+        fname = "output/{}-{}-final-output.txt".format(project_name,v)
+        output_dicts.append(getSimulationOutput(fname))
+
+    agg_dict = {}
+    for key in output_dicts[0].keys():
+        agg_dict[key] = [d[key] for d in output_dicts]
+
+
+    mean_dict = {}
+    for key in agg_dict.keys():
+        mean = np.mean(agg_dict[key])
+        sd = np.std(agg_dict[key])
+        print "{} - Mean {} {} ({})".format(project_name,key,mean,sd)
+        mean_dict[key] = mean
+    return mean_dict
+
+
 def computeRandScore(partition_1, partition_2):
     rand_score = adjusted_rand_score(partition_1,partition_2)
 
@@ -98,10 +132,12 @@ def randIdxSimulation(project_name1, project_name2=None):
 
 
 if __name__ == '__main__':
-    randIdxSimulation('softmax-sampler')
-    randIdxSimulation('naive-sampler')
-    randIdxSimulation('naive-sampler','softmax-sampler')
+    #randIdxSimulation('softmax-sampler')
+    #randIdxSimulation('naive-sampler')
+    #randIdxSimulation('naive-sampler','softmax-sampler')
 
+    getSimulationSummaryStats('naive-sampler',n_sim=4)
+    getSimulationSummaryStats('softmax-sampler', n_sim=4)
 
 
 
