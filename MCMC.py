@@ -33,7 +33,7 @@ def initialize(project_name):
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
-    targetName = 'total'
+    targetName = 'total' # train_average_house_price
     M = 100
     T = 10
     lmbda = .75
@@ -117,6 +117,12 @@ def softmax(x,log=False):
     else:
         exp_X = np.exp(x_centered)
         return exp_X / np.sum(exp_X)
+
+def isConvergent(epsilon,series):
+    if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
+        return True
+    else:
+        return False
 
 
 def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None,log=False):
@@ -247,7 +253,7 @@ def mcmcSamplerUniform(sample_func,
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
 
-            if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
+            if isConvergent(epsilon,f_series):
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
@@ -381,7 +387,7 @@ def mcmcSamplerSoftmax(project_name):
 
             cnt = 0  # reset counter
 
-            if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
+            if isConvergent(epsilon,f_series):
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
@@ -419,8 +425,9 @@ def leaveOneOut_evaluation(year, info_str="optimal boundary"):
     featureName = CommunityArea.featureNames
     targetName = 'total'
     print "leave one out with {} in {}".format(info_str, year)
-    print NB_regression_evaluation(CommunityArea.features, featureName, targetName)
-    
+    reg_eval =  NB_regression_evaluation(CommunityArea.features, featureName, targetName)
+    print reg_eval
+    return reg_eval
     
 
 def naive_MCMC(project_name):
@@ -431,6 +438,7 @@ def naive_MCMC(project_name):
     CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name)
+    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
                         error_array=mae_series,
@@ -439,10 +447,9 @@ def naive_MCMC(project_name):
                         lmbda=lmbda,
                         fname=project_name + "-mcmc-diagnostics-final")
     writeSimulationOutput(project_name=project_name,
-                          error=mae_series[-1],
+                          error=mean_test_error,
                           n_iter_conv=iter_cnt,
                           accept_rate=len(mae_series) / float(iter_cnt))
-    leaveOneOut_evaluation(2011)
     Tract.writePartition(fname=project_name + "-final-partition.txt")
 
 
@@ -485,6 +492,8 @@ def MCMC_softmax_proposal(project_name):
     CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerSoftmax(project_name)
+    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
+
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
                         error_array=mae_series,
@@ -493,17 +502,18 @@ def MCMC_softmax_proposal(project_name):
                         lmbda=lmbda,
                         fname=project_name+"-mcmc-diagnostics-final")
     writeSimulationOutput(project_name=project_name,
-                          error=mae_series[-1],
+                          error=mean_test_error,
                           n_iter_conv=iter_cnt,
                           accept_rate=len(mae_series) / float(iter_cnt))
-    leaveOneOut_evaluation(2011)
+
+
 
     Tract.writePartition(fname=project_name + "-final-partition.txt")
 
 
 
 if __name__ == '__main__':
-
+    """
     n_sim = 10
     versions = ["v" + str(x+1) for x in range(n_sim)]
 
@@ -511,4 +521,5 @@ if __name__ == '__main__':
         MCMC_softmax_proposal('softmax-sampler-{}'.format(v))
         naive_MCMC('naive-sampler-{}'.format(v))
 
-
+    """
+    MCMC_softmax_proposal('softmax-sampler')

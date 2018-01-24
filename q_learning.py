@@ -16,7 +16,7 @@ from shapely.ops import cascaded_union
 import random
 import numpy as np
 import math
-from MCMC import leaveOneOut_evaluation, get_f
+from MCMC import leaveOneOut_evaluation, get_f,isConvergent
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 from keras.callbacks import TensorBoard
@@ -26,9 +26,10 @@ from keras.callbacks import TensorBoard
 
 def initialize():
     global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, F_series, pop_std1, std_series, cnt, project_name
+        iter_cnt, F_series, pop_std1, std_series, cnt, project_name,epsilon
     print "# initialize"
     random.seed(0)
+    epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": 1.5}
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
@@ -210,20 +211,22 @@ if __name__ == '__main__':
             mae1, pop_std1 = mae2, pop_std2
             mae_index.append(iter_cnt)
 
-            if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
+            if isConvergent(epsilon, mae_series):
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
                 plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,
-                                    fname='q-learning')
+                                    fname=project_name)
                 writeSimulationOutput(project_name=project_name,
-                                      error=mae_series[-1],
+                                      error=mean_test_error,
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
-                leaveOneOut_evaluation(2011)
+
+
                 Tract.writePartition(fname=project_name + "-final-partition.txt")
                 break
 
