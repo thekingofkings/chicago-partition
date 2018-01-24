@@ -45,7 +45,6 @@ def initialize():
     std_series = [pop_std1]
     mae_index = [0]
     F_series = [get_f(mae1, T, penalty=pop_std1)]
-    project_name = 'q-learning-v1'
 
 
 
@@ -239,6 +238,6 @@ def q_learning():
 
 
 if __name__ == '__main__':
-    for i in range(2, 11):
+    for i in range(3, 11):
         project_name = "q-learning-v{}".format(i)
         q_learning()

@@ -49,6 +49,7 @@ class CommunityArea:
             self.features, _ = retrieve_summarized_income_features(self.features)
         else:
             self.features, CommunityArea.featureNames = retrieve_summarized_income_features(self.features)
+            CommunityArea.featureNames += Tract.featureNames
 
 
     @classmethod

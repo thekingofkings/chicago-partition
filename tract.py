@@ -10,10 +10,43 @@ matplotlib.rc('pdf', fonttype=42)
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
-from feature_utils import retrieve_income_features, retrieve_crime_count, retrieve_house_price_features
+from feature_utils import *
 
 
 class Tract:
+    """
+    Define one tract.
+
+    A tract is a census spatial unit with roughly 2000 populations. We use tract
+    as the minimum unit, and later build Community Area (CA) on top of tract. 
+    For each tract we collect related urban features.
+
+    Instance Attributes
+    -------------------
+    tid : int32
+        The tract ID as a integer, e.g. 17031690900.
+    polygon : shapely.geometry.Polygon
+        The boundary coordinates of a tract.
+    CA : int32
+        The CA assignment of this tract.
+    neighbors : list
+        A list of tract instances that are adjacent.
+    onEdge : boolean
+        Whether current tract is on CA boundary.
+
+    Class Attributes
+    ----------------
+    tracts : dict
+        A dictionary of all tracts. Key is tract ID. Value is tract instance.
+    tract_index : list
+        All tract IDs in a list sorted in ascending order.
+    features : pandas.DataFrame
+        All tract features in a dataframe.
+    featureNames: list
+        The list of column names that will be used as predictor (X).
+    boundarySet : set
+        A set of tracts CA boundary given current partition
+    """
 
     def __init__(self, tid, shp, rec=None):
         """Build one tract from the shapefile._Shape object"""
@@ -21,7 +54,6 @@ class Tract:
         self.bbox = box(*shp.bbox)
         self.polygon = Polygon(shp.points)
         self.centroid = (self.polygon.centroid.x, self.polygon.centroid.y)
-        self.count = {'total': 0} # type: value
         if rec != None:
             self.CA = int(rec[6])
         else:
@@ -74,7 +106,12 @@ class Tract:
         f, cls.income_description = retrieve_income_features()
         y = retrieve_crime_count(crimeYear)
         price_f = retrieve_house_price_features()
-        cls.features = f.join([y, price_f])
+        # get POI features
+        # POI DataFrame rows are sorted by tract ID in ascending order
+        poi_f = retrieve_POI_features()
+        poi_f.index = sorted(cls.tract_index)
+        cls.features = f.join([y, price_f, poi_f])
+        cls.featureNames = list(poi_f.columns)
         return cls.features
 
     @classmethod

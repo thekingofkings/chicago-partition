@@ -148,6 +148,19 @@ def retrieve_house_price_features():
     return pd.DataFrame.from_csv("data/house_price_features.df")
 
 
+def retrieve_POI_features():
+    """
+    Read the *data/POI_dist_tract.csv" to obtain POI features.
+    This file is generated from chicago-crime/python/foursquarePOI.py
+    
+    The row index is sorted tract ID.
+    """
+    columns = ['Food', 'Residence', 'Travel', 'Arts & Entertainment',
+               'Outdoors & Recreation', 'College & Education', 'Nightlife',
+               'Professional', 'Shops', 'Event']
+    return pd.read_csv("data/POI_dist_tract.csv", index_col=None, header=None,
+                    names=columns)
+
 
 def validate_region_keys():
     """
