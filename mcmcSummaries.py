@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pandas import Series
 
 
-def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda,fname='mcmc-diagnostics'):
+def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda=0.75,fname='mcmc-diagnostics'):
     #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
 

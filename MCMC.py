@@ -52,7 +52,7 @@ def initialize(project_name):
     f_series = []
 
 
-def get_f(ae,T,penalty=None,log=True,lmbda=1.0):
+def get_f(ae, T, penalty=None, log=True, lmbda=0.75):
     """
     compute the "energy function F".
 
