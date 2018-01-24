@@ -8,12 +8,11 @@ Created on Tue Jan 16 07:57:36 2018
 Q-learning as adaptive MCMC method
 
 """
-from mcmcSummaries import writeSimulationOutput
+from mcmcSummaries import writeSimulationOutput, plotMcmcDiagnostics
 from tract import Tract
 from community_area import CommunityArea
-from regression import NB_regression_training, NB_regression_evaluation
+from regression import NB_regression_training
 from shapely.ops import cascaded_union
-import matplotlib.pyplot as plt
 import random
 import numpy as np
 import math
@@ -27,7 +26,7 @@ from keras.callbacks import TensorBoard
 
 def initialize():
     global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, pop_variance1, var_series, cnt, project_name
+        iter_cnt, F_series, pop_std1, std_series, cnt, project_name
     print "# initialize"
     random.seed(0)
     Tract.createAllTracts()
@@ -38,13 +37,14 @@ def initialize():
     T = 10
     CA_maxsize = 30
     mae1, _, _, errors = NB_regression_training(CommunityArea.features, featureName, targetName)
-    pop_variance1 = np.std(CommunityArea.population)
+    pop_std1 = np.std(CommunityArea.population)
     iter_cnt = 0
     cnt = 0
     mae_series = [mae1]
-    var_series = [pop_variance1]
+    std_series = [pop_std1]
     mae_index = [0]
-    project_name = 'q-learning'
+    F_series = [get_f(mae1, T, penalty=pop_std1)]
+    project_name = 'q-learning-v2'
 
 
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         gains = []
         curPartition = Tract.getPartition()
 
-        F_cur = get_f(ae=mae1, T=T, penalty=pop_variance1)
+        F_cur = get_f(ae=mae1, T=T, penalty=pop_std1)
         # random sample a batch for Q-learning
         while i < 32:
             state = Tract.getPartition()
@@ -134,12 +134,12 @@ if __name__ == '__main__':
             # update communities features for evaluation
             CommunityArea.updateCAFeatures(*sample_res)
             # Get updated variance of population distribution
-            pop_variance2 = np.std(CommunityArea.population)
+            pop_std2 = np.std(CommunityArea.population)
             # evaluate new partition
             mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             # Calculate acceptance probability --> Put on log scale
             # calculate f ('energy') of current and proposed states
-            F_next = get_f(ae = mae2, T=T,penalty=pop_variance2,log=True)
+            F_next = get_f(ae = mae2, T=T, penalty=pop_std2)
             gain = 1 / (1 + math.exp(- F_next + F_cur))
 
             partitions.append(state)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
             cnt += 1
             F_cur = F_next
 
-        print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
+#        print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
         model.fit(x={'partition': np.array(partitions)-1, 
                      'action_target_tract': np.array(action_tracts), 
                      'action_new_CA': np.array(action_toCAs)}, 
@@ -186,8 +186,8 @@ if __name__ == '__main__':
                 action_ca = new_caid
             
             j += 1
-        print "Q function esimate gain_pred min {}, mean {}, max {}".format(np.min(gain_preds),
-                                                np.mean(gain_preds), np.max(gain_preds))
+#        print "Q function esimate gain_pred min {}, mean {}, max {}".format(np.min(gain_preds),
+#                                                np.mean(gain_preds), np.max(gain_preds))
 
         # take the best action
         if action_tract is None or action_ca is None:
@@ -199,14 +199,15 @@ if __name__ == '__main__':
             Tract.updateBoundarySet(action_tract)
             CommunityArea.updateCAFeatures(action_tract, prv_caid, action_ca)
             # Get updated variance of population distribution
-            pop_variance2 = np.std(CommunityArea.population)
+            pop_std2 = np.std(CommunityArea.population)
             # evaluate new partition
             mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
-            var_series.append(pop_variance2)
+            std_series.append(pop_std2)
+            F_series.append(get_f(mae2, T, pop_std2))
             print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
             # Update error, variance
-            mae1, pop_variance1 = mae2, pop_variance2
+            mae1, pop_std1 = mae2, pop_std2
             mae_index.append(iter_cnt)
 
             if len(mae_series) > 75 and np.std(mae_series[-50:]) < 3:
@@ -216,13 +217,17 @@ if __name__ == '__main__':
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,
+                                    fname='q-learning')
                 writeSimulationOutput(project_name=project_name,
                                       error=mae_series[-1],
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
+                leaveOneOut_evaluation(2011)
+                Tract.writePartition(fname=project_name + "-final-partition.txt")
                 break
 
-            if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
-                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
-                                               iter_cnt=iter_cnt)
+        if iter_cnt % 500 == 0:
+            CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
+            CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
+                                           iter_cnt=iter_cnt)
