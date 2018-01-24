@@ -26,7 +26,7 @@ from keras.callbacks import TensorBoard
 
 def initialize():
     global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, F_series, pop_std1, std_series, cnt, project_name,epsilon
+        iter_cnt, F_series, pop_std1, std_series, cnt, project_name, epsilon
     print "# initialize"
     random.seed(0)
     epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": 1.5}
@@ -45,7 +45,7 @@ def initialize():
     std_series = [pop_std1]
     mae_index = [0]
     F_series = [get_f(mae1, T, penalty=pop_std1)]
-    project_name = 'q-learning-v2'
+    project_name = 'q-learning-v1'
 
 
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
             mae1, pop_std1 = mae2, pop_std2
             mae_index.append(iter_cnt)
 
-            if isConvergent(epsilon, mae_series):
+            if isConvergent(epsilon, F_series):
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
