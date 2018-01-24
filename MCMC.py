@@ -504,7 +504,7 @@ def MCMC_softmax_proposal(project_name):
 
 if __name__ == '__main__':
 
-    n_sim = 4
+    n_sim = 10
     versions = ["v" + str(x+1) for x in range(n_sim)]
 
     for v in versions:

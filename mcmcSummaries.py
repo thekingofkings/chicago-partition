@@ -90,9 +90,7 @@ def getCombinations(x1,x2=None):
 
     return c
 
-def randIdxSimulation(project_name1, project_name2=None):
-
-    n_sim = 4
+def randIdxSimulation(project_name1, project_name2=None,n_sim=10):
     sims = range(0,n_sim)
     versions = ['v' + str(x+1) for x in sims]
     partitions = []
@@ -132,12 +130,12 @@ def randIdxSimulation(project_name1, project_name2=None):
 
 
 if __name__ == '__main__':
-    #randIdxSimulation('softmax-sampler')
-    #randIdxSimulation('naive-sampler')
-    #randIdxSimulation('naive-sampler','softmax-sampler')
-
-    getSimulationSummaryStats('naive-sampler',n_sim=4)
-    getSimulationSummaryStats('softmax-sampler', n_sim=4)
+    randIdxSimulation('softmax-sampler',n_sim=10)
+    randIdxSimulation('naive-sampler',n_sim=10)
+    randIdxSimulation('naive-sampler','softmax-sampler',n_sim=10)
+    print "------------"
+    getSimulationSummaryStats('naive-sampler',n_sim=10)
+    getSimulationSummaryStats('softmax-sampler', n_sim=10)
 
 
 
