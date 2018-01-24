@@ -44,7 +44,7 @@ def initialize():
     std_series = [pop_std1]
     mae_index = [0]
     F_series = [get_f(mae1, T, penalty=pop_std1)]
-    project_name = 'q-learning'
+    project_name = 'q-learning-v2'
 
 
 
@@ -223,9 +223,11 @@ if __name__ == '__main__':
                                       error=mae_series[-1],
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
+                leaveOneOut_evaluation(2011)
+                Tract.writePartition(fname=project_name + "-final-partition.txt")
                 break
 
-            if iter_cnt % 500 == 0:
-                CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
-                CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
-                                               iter_cnt=iter_cnt)
+        if iter_cnt % 500 == 0:
+            CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
+            CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
+                                           iter_cnt=iter_cnt)
