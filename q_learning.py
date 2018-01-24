@@ -82,7 +82,8 @@ def sample_once():
     return (t, prv_caid, new_caid)
 
 
-if __name__ == '__main__':
+def q_learning():
+    global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
     initialize()
     
     # loo evaluation test data on original boundary
@@ -228,9 +229,16 @@ if __name__ == '__main__':
 
 
                 Tract.writePartition(fname=project_name + "-final-partition.txt")
+                del model
                 break
 
         if iter_cnt % 500 == 0:
             CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
             CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
                                            iter_cnt=iter_cnt)
+
+
+if __name__ == '__main__':
+    for i in range(2, 11):
+        project_name = "q-learning-v{}".format(i)
+        q_learning()
