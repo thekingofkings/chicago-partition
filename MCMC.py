@@ -118,8 +118,8 @@ def softmax(x,log=False):
         exp_X = np.exp(x_centered)
         return exp_X / np.sum(exp_X)
 
-def isConvergent(epsilon, f_series):
-    if len(f_series) > epsilon['acc_len'] and np.std(f_series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
+def isConvergent(epsilon, series):
+    if len(series) > epsilon['acc_len'] and np.std(series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
         return True
     else:
         return False
