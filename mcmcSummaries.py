@@ -136,6 +136,8 @@ if __name__ == '__main__':
     print "------------"
     getSimulationSummaryStats('naive-sampler',n_sim=10)
     getSimulationSummaryStats('softmax-sampler', n_sim=10)
+    getSimulationSummaryStats('q-learning', n_sim=10)
+
 
 
 

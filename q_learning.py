@@ -24,16 +24,16 @@ from keras.callbacks import TensorBoard
 
 
 
-def initialize():
-    global featureName, targetName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, F_series, pop_std1, std_series, cnt, project_name, epsilon
+def initialize(project_name, targetName):
+    global featureName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
+        iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
     print "# initialize"
     random.seed(0)
     epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": 1.5}
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
-    targetName = 'total'
+
     M = 100
     T = 10
     CA_maxsize = 30
@@ -81,7 +81,7 @@ def sample_once():
     return (t, prv_caid, new_caid)
 
 
-def q_learning():
+def q_learning(project_name,targetName='total'):
     global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
     initialize()
     
@@ -240,4 +240,4 @@ def q_learning():
 if __name__ == '__main__':
     for i in range(3, 11):
         project_name = "q-learning-v{}".format(i)
-        q_learning()
+        q_learning(project_name,targetName='total')

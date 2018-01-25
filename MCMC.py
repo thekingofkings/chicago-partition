@@ -17,8 +17,8 @@ from shapely.ops import cascaded_union
 from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
 
 
-def initialize(project_name):
-    global M, T, lmbda, featureName, targetName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
+def initialize(project_name,targetName):
+    global M, T, lmbda, featureName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
         mae_series, mae_index, sd_series,pop_sd_1,f_series,epsilon
     print "# initialize"
     """
@@ -33,7 +33,7 @@ def initialize(project_name):
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
-    targetName = 'total' # train_average_house_price
+    #targetName = 'total' # train_average_house_price
     M = 100
     T = 10
     lmbda = .75
@@ -182,12 +182,14 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
 
 def mcmcSamplerUniform(sample_func,
                        update_sample_weight_func,
-                       project_name):
+                       project_name,
+                       targetName):
     """=
     MCMC search for optimal solution.
     Input:
         sample_func is the sample proposal method.
         update_sample_weight_func updates sampling auxilary variables.
+        targetName: Predicted Value. y in regression model
 
     Output:
         Optimal partition plot and training error decreasing trend.
@@ -282,11 +284,12 @@ def mcmcSamplerUniform(sample_func,
                                 fname=project_name+'-mcmc-diagnostics-progess')
 
 
-def mcmcSamplerSoftmax(project_name):
+def mcmcSamplerSoftmax(project_name,targetName):
     """
     MCMC search for optimal solution.
     Input:
         project_name: prefix for output files
+        targetName: Predicted value. y in regression model
     Output:
         Optimal partition plot and training error decreasing trend.
     """
@@ -417,27 +420,41 @@ def mcmcSamplerSoftmax(project_name):
                                 lmbda=lmbda,
                                 fname=project_name + '-mcmc-diagnostics-progess')
 
-def leaveOneOut_evaluation(year, info_str="optimal boundary"):
+def leaveOneOut_evaluation(year, targetName, info_str="optimal boundary"):
     """
     Leave-one-out evaluation the current partition with next year crime rate.
     """
-    CommunityArea._initializeCAfeatures(crimeYear=year)
+
+    if targetName == 'total':
+        # If doing crime task, re-load task at given year
+        CommunityArea._initializeCAfeatures(crimeYear=year)
+
+
     featureName = CommunityArea.featureNames
-    targetName = 'total'
     print "leave one out with {} in {}".format(info_str, year)
     reg_eval =  NB_regression_evaluation(CommunityArea.features, featureName, targetName)
     print reg_eval
     return reg_eval
     
 
-def naive_MCMC(project_name):
-    initialize(project_name)
+def naive_MCMC(project_name,targetName = 'total'):
+    """
+    Run naive MCMC
+    :param project_name: string
+    :param targetName: Predicted value. y in regression model
+    :return:
+    """
+    if targetName not in ['total','train_average_house_price']:
+        raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
+
+
+    initialize(project_name,targetName=targetName)
     # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011, "Administrative boundary")
+    leaveOneOut_evaluation(2011,targetName=targetName, info_str="Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name)
+    mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
@@ -484,14 +501,23 @@ def adaptive_MCMC():
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,std_array=sd_series)
 
 
-def MCMC_softmax_proposal(project_name):
-    initialize(project_name)
+def MCMC_softmax_proposal(project_name,targetName='total'):
+    """
+    Run guided MCMC
+    :param project_name: string
+    :param targetName: Predicted value. y in regression model
+    :return:
+    """
+    if targetName not in ['total','train_average_house_price']:
+        raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
+
+    initialize(project_name,targetName=targetName)
     # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011, "Administrative boundary")
+    leaveOneOut_evaluation(2011, targetName=targetName, info_str="Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
-    mcmcSamplerSoftmax(project_name)
+    mcmcSamplerSoftmax(project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
 
     plotMcmcDiagnostics(iter_cnt=None,
@@ -513,5 +539,4 @@ def MCMC_softmax_proposal(project_name):
 
 
 if __name__ == '__main__':
-
-    MCMC_softmax_proposal('softmax-sampler')
+    naive_MCMC('naive-sampler',targetName='train_average_house_price')
