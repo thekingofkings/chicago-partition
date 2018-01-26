@@ -450,12 +450,12 @@ def naive_MCMC(project_name,targetName = 'total'):
 
     initialize(project_name,targetName=targetName)
     # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011,targetName=targetName, info_str="Administrative boundary")
+    leaveOneOut_evaluation(2011,targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name,targetName=targetName)
-    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
+    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'))
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
                         error_array=mae_series,
@@ -513,12 +513,12 @@ def MCMC_softmax_proposal(project_name,targetName='total'):
 
     initialize(project_name,targetName=targetName)
     # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011, targetName=targetName, info_str="Administrative boundary")
+    leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
     # restore training data
     CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerSoftmax(project_name,targetName=targetName)
-    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
+    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
 
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,

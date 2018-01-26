@@ -218,7 +218,7 @@ def q_learning(project_name,targetName='total'):
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
-                mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011)
+                mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
                 plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,
                                     fname=project_name)
                 writeSimulationOutput(project_name=project_name,
