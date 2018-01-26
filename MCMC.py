@@ -94,7 +94,7 @@ def get_gamma(f_current,f_proposed,symmetric=True,log=True,q_proposed_given_curr
             alpha = f_proposed - f_current + q_current_given_proposed - q_proposed_given_current
             gamma = np.min((0,alpha))
         else:
-            alpha = f_proposed*q_current_given_proposed/f_current*q_proposed_given_current
+            alpha = (f_proposed*q_current_given_proposed)/(f_current*q_proposed_given_current)
             gamma = np.min((1,alpha))
 
     return gamma
