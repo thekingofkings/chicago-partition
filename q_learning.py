@@ -24,18 +24,19 @@ from keras.callbacks import TensorBoard
 
 
 
-def initialize(project_name, targetName):
-    global featureName, M, T, CA_maxsize, mae1, mae_series, mae_index, \
+def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
+    global featureName, M, T, lmbda, CA_maxsize, mae1, mae_series, mae_index, \
         iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
     print "# initialize"
     random.seed(0)
-    epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": 1.5}
+    epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": f_sd}
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
 
     M = 100
-    T = 10
+    T = Tt
+    lmbda = lmbd
     CA_maxsize = 30
     mae1, _, _, errors = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_std1 = np.std(CommunityArea.population)
@@ -44,7 +45,7 @@ def initialize(project_name, targetName):
     mae_series = [mae1]
     std_series = [pop_std1]
     mae_index = [0]
-    F_series = [get_f(mae1, T, penalty=pop_std1)]
+    F_series = [get_f(mae1, T, penalty=pop_std1, lmbda=lmbda)]
 
 
 
@@ -81,9 +82,9 @@ def sample_once():
     return (t, prv_caid, new_caid)
 
 
-def q_learning(project_name,targetName='total'):
+def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
     global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
-    initialize()
+    initialize(project_name, targetName, lmbd, f_sd, Tt)
     
     # loo evaluation test data on original boundary
 #    leaveOneOut_evaluation(2011, "Administrative boundary")
@@ -122,7 +123,7 @@ def q_learning(project_name,targetName='total'):
         gains = []
         curPartition = Tract.getPartition()
 
-        F_cur = get_f(ae=mae1, T=T, penalty=pop_std1)
+        F_cur = get_f(ae=mae1, T=T, penalty=pop_std1, lmbda=lmbda)
         # random sample a batch for Q-learning
         while i < 32:
             state = Tract.getPartition()
@@ -140,7 +141,7 @@ def q_learning(project_name,targetName='total'):
             mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             # Calculate acceptance probability --> Put on log scale
             # calculate f ('energy') of current and proposed states
-            F_next = get_f(ae = mae2, T=T, penalty=pop_std2)
+            F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbda)
             gain = 1 / (1 + math.exp(- F_next + F_cur))
 
             partitions.append(state)
@@ -205,7 +206,7 @@ def q_learning(project_name,targetName='total'):
             mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
             std_series.append(pop_std2)
-            F_series.append(get_f(mae2, T, pop_std2))
+            F_series.append(get_f(mae2, T, pop_std2, lmbda=lmbda))
             print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
             # Update error, variance
             mae1, pop_std1 = mae2, pop_std2

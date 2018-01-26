@@ -17,7 +17,7 @@ from shapely.ops import cascaded_union
 from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
 
 
-def initialize(project_name,targetName):
+def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     global M, T, lmbda, featureName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
         mae_series, mae_index, sd_series,pop_sd_1,f_series,epsilon
     print "# initialize"
@@ -28,15 +28,15 @@ def initialize(project_name,targetName):
             - prev_len: last n (accepted) samples to examine for convergence
             - f_sd: standard deviation of prev_len
     """
-    epsilon = {"acc_len":100,"prev_len":50,"f_sd":1.5}
+    epsilon = {"acc_len":100,"prev_len":50,"f_sd":f_sd}
     random.seed(0)
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
     #targetName = 'total' # train_average_house_price
     M = 100
-    T = 10
-    lmbda = .75
+    T = Tt
+    lmbda = lmbd
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
@@ -49,7 +49,7 @@ def initialize(project_name,targetName):
     mae_series = [mae1]
     sd_series = [pop_sd_1]
     mae_index = [0]
-    f_series = []
+    f_series = [get_f(ae=mae1, T=T,penalty=pop_sd_1, log=True, lmbda=lmbda)]
 
 
 def get_f(ae, T, penalty=None, log=True, lmbda=0.75):
@@ -232,9 +232,6 @@ def mcmcSamplerUniform(sample_func,
         f_current = get_f(ae = mae1, T=T,penalty=pop_sd_1,log=True,lmbda=lmbda)
         f_proposed = get_f(ae = mae2, T=T,penalty=pop_sd_2,log=True,lmbda=lmbda)
 
-        if iter_cnt == 1:
-            # Initialize f series
-            f_series.append(f_current)
         # Compute gamma for acceptance probabil
         # ity
         gamma = get_gamma(f_current=f_current,f_proposed=f_proposed,log=True)
@@ -351,9 +348,6 @@ def mcmcSamplerSoftmax(project_name,targetName):
         f_current = get_f(ae=mae1, T=T, penalty=pop_sd_1, log=True,lmbda=lmbda)
         f_proposed = get_f(ae=mae2, T=T, penalty=pop_sd_2, log=True,lmbda=lmbda)
 
-        if iter_cnt == 1:
-            # Initialize f series
-            f_series.append(f_current)
         # We need to compute Q to get gamma, since Q is non-symmetric under the softmax sampling scheme
         log_q_proposed_given_current = log_sample_ca_prob + log_tract_prob
 
@@ -437,7 +431,7 @@ def leaveOneOut_evaluation(year, targetName, info_str="optimal boundary"):
     return reg_eval
     
 
-def naive_MCMC(project_name,targetName = 'total'):
+def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
     """
     Run naive MCMC
     :param project_name: string
@@ -448,7 +442,7 @@ def naive_MCMC(project_name,targetName = 'total'):
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
 
-    initialize(project_name,targetName=targetName)
+    initialize(project_name, targetName, lmbda, f_sd, Tt)
     # loo evaluation test data on original boundary
     leaveOneOut_evaluation(2011,targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
     # restore training data
@@ -501,7 +495,7 @@ def adaptive_MCMC():
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,std_array=sd_series)
 
 
-def MCMC_softmax_proposal(project_name,targetName='total'):
+def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
     """
     Run guided MCMC
     :param project_name: string
@@ -511,7 +505,7 @@ def MCMC_softmax_proposal(project_name,targetName='total'):
     if targetName not in ['total','train_average_house_price']:
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
-    initialize(project_name,targetName=targetName)
+    initialize(project_name, targetName, lmbda, f_sd, Tt)
     # loo evaluation test data on original boundary
     leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
     # restore training data
