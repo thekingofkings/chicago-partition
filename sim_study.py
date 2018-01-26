@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 from MCMC import MCMC_softmax_proposal, naive_MCMC
 from q_learning import q_learning
 

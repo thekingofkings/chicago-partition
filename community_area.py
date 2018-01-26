@@ -14,6 +14,7 @@ from tract import Tract
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from feature_utils import retrieve_summarized_income_features
 
 class CommunityArea:
@@ -42,7 +43,11 @@ class CommunityArea:
                                      index=[self.id])
         # calculate the average house price (training and testing)
         fdf['train_average_house_price'] = fdf['train_price'] / fdf['train_count']
+        fdf['train_average_house_price'] = \
+                    fdf['train_average_house_price'].replace([np.inf, -np.inf, np.nan], 0)
         fdf['test_average_house_price'] = fdf['test_price'] / fdf['test_count']
+        fdf['test_average_house_price'] = \
+                    fdf['test_average_house_price'].replace([np.inf, -np.inf, np.nan], 0)
         self.features= fdf
         # calculate summarized demo features, such as entropy / percentage 
         if hasattr(CommunityArea, "featureNames"):
