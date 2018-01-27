@@ -16,4 +16,4 @@ for v in versions:
                lmbda=0.01, f_sd=0.8, Tt=0.1)
     q_learning('house-price-q-learning-sampler-{}'.format(v),
                targetName='train_average_house_price',
-               lmbda=0.01, f_sd=0.8, Tt=0.1)
+               lmbd=0.01, f_sd=0.8, Tt=0.1)
