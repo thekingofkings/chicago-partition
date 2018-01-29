@@ -70,7 +70,7 @@ def getSimulationSummaryStats(project_name,n_sim):
     for key in agg_dict.keys():
         mean = np.mean(agg_dict[key])
         sd = np.std(agg_dict[key])
-        print "{} - Mean {} {} ({})".format(project_name,key,mean,sd)
+        print "{:s} - Mean {:s} {:.2f} ({:.2f})".format(project_name,key,mean,sd)
         mean_dict[key] = mean
     return mean_dict
 
@@ -124,15 +124,17 @@ def randIdxSimulation(project_name1, project_name2=None,n_sim=10):
 
     mean_rand = np.round(np.mean(rand_scores),4)
     sd_rand = np.round(np.std(rand_scores),4)
-    print "{} - Mean Adjusted Rand Index {} ({})".format(project_name1,mean_rand,sd_rand)
+    print "{:s} - Mean Adjusted Rand Index {:.4f} ({:.2f})".format(project_name1,mean_rand,sd_rand)
     return mean_rand, sd_rand
 
 
 
 if __name__ == '__main__':
+    print "Rand Index:"
+    print "-----------"
     randIdxSimulation('softmax-sampler',n_sim=10)
+    randIdxSimulation('q-learning', n_sim=10)
     randIdxSimulation('naive-sampler',n_sim=10)
-    randIdxSimulation('naive-sampler','softmax-sampler',n_sim=10)
     print "------------"
     getSimulationSummaryStats('naive-sampler',n_sim=10)
     getSimulationSummaryStats('softmax-sampler', n_sim=10)
