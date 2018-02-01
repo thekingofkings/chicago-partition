@@ -42,7 +42,8 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
     print "# sampling"
     CA_maxsize = 30
-    mae1, _, _,errors1 = NB_regression_training(CommunityArea.features, featureName, targetName)
+    mae1, _, _,errors1,regression_coeff_init = NB_regression_training(CommunityArea.features, featureName, targetName)
+    writeBetasToFile(project_name,regression_coeff_init)
     pop_sd_1 = np.std(CommunityArea.population)
     cnt = 0
     iter_cnt = 0
@@ -123,6 +124,11 @@ def isConvergent(epsilon, series):
         return True
     else:
         return False
+
+
+def writeBetasToFile(project_name,betas):
+    fname = 'output/' + project_name + "-regression_coef.csv"
+    betas.to_csv(fname)
 
 
 def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None,log=False):
@@ -226,7 +232,7 @@ def mcmcSamplerUniform(sample_func,
         # Get updated variance of population distribution
         pop_sd_2 = np.std(CommunityArea.population)
         # evaluate new partition
-        mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+        mae2, _, _, _,regression_coeff = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
         f_current = get_f(ae = mae1, T=T,penalty=pop_sd_1,log=True,lmbda=lmbda)
@@ -243,6 +249,7 @@ def mcmcSamplerUniform(sample_func,
             mae_series.append(mae2)
             sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
+            writeBetasToFile(project_name, regression_coeff)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_sd_1 = mae2, pop_sd_2
@@ -342,7 +349,7 @@ def mcmcSamplerSoftmax(project_name,targetName):
         # Get updated variance of population distribution
         pop_sd_2 = np.std(CommunityArea.population)
         # evaluate new partition
-        mae2, _, _,errors2 = NB_regression_training(CommunityArea.features, featureName, targetName)
+        mae2, _, _,errors2, regression_coeff = NB_regression_training(CommunityArea.features, featureName, targetName)
         # Calculate acceptance probability --> Put on log scale
         # calculate f ('energy') of current and proposed states
         f_current = get_f(ae=mae1, T=T, penalty=pop_sd_1, log=True,lmbda=lmbda)
@@ -375,6 +382,7 @@ def mcmcSamplerSoftmax(project_name,targetName):
             mae_series.append(mae2)
             sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
+            writeBetasToFile(project_name, regression_coeff)
             print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_sd_1,errors1 = mae2, pop_sd_2,errors2
@@ -533,4 +541,6 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 
 if __name__ == '__main__':
-    naive_MCMC('naive-sampler',targetName='train_average_house_price')
+    MCMC_softmax_proposal('naive-sampler-tune',
+               targetName='total',
+               lmbda=.01,f_sd=1.5, Tt=.05)
