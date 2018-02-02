@@ -57,19 +57,20 @@ def NB_regression_evaluation(df, featureNames, targetName):
     return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
 
 
-def NB_regression_training(df, featureNames, targetName,error_metric='mae'):
+def NB_regression_training(df, featureNames, targetName):
     """
     NB training for partition search
     """
     crimeRate = df[targetName]
     nbmodel = sm.GLM(crimeRate, df[featureNames], family=sm.families.NegativeBinomial())
     model_res = nbmodel.fit()
+    betas = model_res.params
     y_pred = nbmodel.predict(model_res.params, df[featureNames])
     errors = abs(crimeRate - y_pred)
     #rel_errors = errors / np.max(errors)
     # Transform errors to standard normal scale (subtract mean, divide by standard deviation)
     rel_errors = (errors - np.mean(errors))/np.std(errors)
-    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate), rel_errors
+    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate), rel_errors, betas
 
 
 def test_NB_regression():
