@@ -151,4 +151,20 @@ class CommunityArea:
 if __name__ == '__main__':
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
-#    CommunityArea.visualizeCAs()
+    CommunityArea.visualizeCAs()
+
+    Tract.agglomerativeClustering()
+    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.visualizeCAs(fname="agg_CAs.png")
+
+    Tract.agglomerativeClustering(algorithm="average_cosine")
+    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.visualizeCAs(fname="agg_CAs_average_cosine.png")
+
+    Tract.agglomerativeClustering(algorithm="average_cityblock")
+    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.visualizeCAs(fname="agg_CAs_average_cityblock.png")
+    Tract.agglomerativeClustering(algorithm="complete_cosine")
+    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
+    

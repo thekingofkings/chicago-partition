@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
 from feature_utils import *
+from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralClustering
+import numpy as np
 
 
 class Tract:
@@ -205,6 +207,74 @@ class Tract:
             f.write("\n")
         f.close()
 
+    @classmethod
+    def agglomerativeClustering(cls, algorithm = "ward"):
+        '''
+        using agglomerative clustering
+        :return: tract to CA mapping
+        '''
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+        if algorithm == "ward":
+            ward = AgglomerativeClustering(n_clusters=CA_count, linkage="ward",
+                                           connectivity=connectivity)
+        elif algorithm =="average_cosine":
+            ward = AgglomerativeClustering(n_clusters=CA_count, linkage="average",
+                                           affinity="cosine",
+                                           connectivity=connectivity)
+        elif algorithm =="average_cityblock":
+            ward = AgglomerativeClustering(n_clusters=CA_count, linkage="average",
+                                           affinity="cityblock",
+                                           connectivity=connectivity)
+        elif algorithm =="complete_cosine":
+            ward = AgglomerativeClustering(n_clusters=CA_count, linkage="complete",
+                                           affinity="cosine",
+                                           connectivity=connectivity)
+        else:
+            raise "ERROR: agglomerative clustering params wrong!"
+        ward.fit(node_value)
+        labels = ward.labels_
+        tract_to_CA_dict = dict(zip(tract_ids,labels))
+        cls.updateCA(tract_to_CA_dict)
+
+
+
+    @classmethod
+    def constructConnectivity(cls):
+        '''
+        Construct connectivity matrix for clustering methods
+        :return: Adjacency matrix, node value matrix, number of CA_ids,
+                 tract_ids order in cls.items
+        '''
+        from scipy import sparse
+        N = len(cls.tracts)
+        I = []
+        J = []
+        V = []
+        X = []
+        CA_ids = []
+        tract_ids = []
+        for focalKey, focalTract in cls.tracts.items():
+            tract_ids.append(focalKey)
+            CA_ids.append(focalTract.CA)
+        for focalKey, focalTract in cls.tracts.items():
+            X.append(cls.features.loc[focalKey, cls.income_description.keys()])
+            for neighbor in focalTract.neighbors:
+                I.append(tract_ids.index(focalKey))
+                J.append(tract_ids.index(neighbor.id))
+                V.append(1)
+
+        return sparse.coo_matrix((np.array(V), (np.array(I), np.array(J))), shape=(N, N)), \
+               np.array(X), np.unique(np.array(CA_ids)).size ,tract_ids
+
+    @classmethod
+    def updateCA(cls,tract_to_CA_dict):
+        '''
+        Update the CA id according to tract_CA mapping
+        :param tract_to_CA_dict:
+        :return:
+        '''
+        for focalKey, focalTract in cls.tracts.items():
+            focalTract.CA = tract_to_CA_dict[focalKey]
 
 
 def compare_tract_shapefiles():
@@ -242,8 +312,14 @@ def compare_tract_shapefiles():
     return trts1, trts2
 
 
+
 if __name__ == '__main__':
-#    t1, t2 = compare_tract_shapefiles()
+    #t1, t2 = compare_tract_shapefiles()
     trts0 = Tract.createAllTracts()
-#    Tract.visualizeTracts()
-#    Tract.visualizeTractsAdjacency()
+    #Tract.visualizeTracts()
+    #Tract.visualizeTractsAdjacency)
+    trts0_features = Tract.generateFeatures(crimeYear=2010)
+
+    # tract_to_CA_dict = Tract.agglomerativeClustering()
+    # Tract.updateCA(tract_to_CA_dict)
+    # trts1 = Tract.tracts
