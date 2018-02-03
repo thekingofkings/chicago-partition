@@ -38,7 +38,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
-    mae1, _, _, errors = NB_regression_training(CommunityArea.features, featureName, targetName)
+    mae1, _, _, errors, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_std1 = np.std(CommunityArea.population)
     iter_cnt = 0
     cnt = 0
@@ -47,6 +47,31 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     mae_index = [0]
     F_series = [get_f(mae1, T, penalty=pop_std1, lmbda=lmbda)]
 
+
+def DQN_model():
+    """
+    build the DQN model
+    """
+    partition = Input(shape=(801,), dtype='int32', name='partition')
+    action_tract = Input(shape=(1,), dtype='int32', name='action_target_tract')
+    action_toCA = Input(shape=(1,), dtype='int32', name='action_new_CA')
+    
+    ca_embed = Flatten()(Embedding(77, 2, input_length=802)(concatenate([partition, action_toCA])))
+    tract_embed = Flatten()(Embedding(801, 4, input_length=1)(action_tract))
+    
+    x = concatenate([ca_embed, tract_embed])
+    x = Dense(200, activation='relu')(x)
+    x = Dense(100, activation='relu')(x)
+    
+    output = Dense(1, activation='sigmoid', name='delta_error')(x)
+    
+    model = Model(inputs=[partition, action_tract, action_toCA], outputs=[output])
+    model.compile(optimizer='rmsprop', loss='mse')
+    
+    tbCallback = TensorBoard(log_dir="/tmp/tensorboard_logs", batch_size=32, write_graph=True, 
+                             write_grads=False, write_images=False, embeddings_freq=0,
+                             embeddings_layer_names=None, embeddings_metadata=None)
+    return model, tbCallback
 
 
 def sample_once():
@@ -82,6 +107,60 @@ def sample_once():
     return (t, prv_caid, new_caid)
 
 
+
+def q_learning_pretrain(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
+    """
+    Pre-train the future reward DQN model
+    """
+    global iter_cnt, cnt, mae1, pop_std1
+    print "# DQN model pretrain for {}".format(project_name)
+    initialize(project_name, targetName, lmbd, f_sd, Tt)
+    model, tbCallback = DQN_model()
+
+    while iter_cnt < 100:
+        i = 0
+        action_tracts = []
+        action_toCAs = []
+        partitions = []
+        gains = []
+        
+        F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbd)
+        while i < 32:
+            state = Tract.getPartition()
+            sample_res = sample_once()
+            if sample_res == None:
+                continue
+
+            t, prv_caid, new_caid = sample_res
+            t.CA = new_caid
+            CommunityArea.updateCAFeatures(*sample_res)
+            pop_std2 = np.std(CommunityArea.population)
+            mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+            F_next = get_f(ae=mae2, T=Tt, penalty=pop_std2, lmbda=lmbd)
+            gain = 1 / (1+math.exp(- F_next + F_cur))
+
+            partitions.append(state)
+            action_tracts.append(Tract.getTractPosID(t))
+            action_toCAs.append(new_caid-1)
+            gains.append(gain)
+
+            Tract.updateBoundarySet(t)
+            i += 1
+            F_cur = F_next
+
+        model.fit(x={'partition': np.array(partitions)-1, 
+             'action_target_tract': np.array(action_tracts), 
+             'action_new_CA': np.array(action_toCAs)}, 
+            y=np.array(gains),
+            epochs=2,
+            callbacks=[tbCallback],
+            verbose=0)
+    
+    print "save model"
+    model.save_weights("DQN-pretrain-model-{}".format(project_name))
+
+
+
 def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
     global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
     initialize(project_name, targetName, lmbd, f_sd, Tt)
@@ -90,27 +169,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 #    leaveOneOut_evaluation(2011, "Administrative boundary")
     # restore training data
 #    CommunityArea._initializeCAfeatures(2010)
-    
-    partition = Input(shape=(801,), dtype='int32', name='partition')
-    action_tract = Input(shape=(1,), dtype='int32', name='action_target_tract')
-    action_toCA = Input(shape=(1,), dtype='int32', name='action_new_CA')
-    
-    ca_embed = Flatten()(Embedding(77, 2, input_length=802)(concatenate([partition, action_toCA])))
-    tract_embed = Flatten()(Embedding(801, 4, input_length=1)(action_tract))
-    
-    x = concatenate([ca_embed, tract_embed])
-    x = Dense(200, activation='relu')(x)
-    x = Dense(100, activation='relu')(x)
-    
-    output = Dense(1, activation='sigmoid', name='delta_error')(x)
-    
-    model = Model(inputs=[partition, action_tract, action_toCA], outputs=[output])
-    model.compile(optimizer='rmsprop', loss='mse')
-    
-    tbCallback = TensorBoard(log_dir="/tmp/tensorboard_logs", batch_size=32, write_graph=True, 
-                             write_grads=False, write_images=False, embeddings_freq=0,
-                             embeddings_layer_names=None, embeddings_metadata=None)
-
+    model, tbCallback = DQN_model()
 
     print "# sampling"
     while True:
@@ -123,7 +182,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
         gains = []
         curPartition = Tract.getPartition()
 
-        F_cur = get_f(ae=mae1, T=T, penalty=pop_std1, lmbda=lmbda)
+        F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbda)
         # random sample a batch for Q-learning
         while i < 32:
             state = Tract.getPartition()
@@ -138,7 +197,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             # Get updated variance of population distribution
             pop_std2 = np.std(CommunityArea.population)
             # evaluate new partition
-            mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+            mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             # Calculate acceptance probability --> Put on log scale
             # calculate f ('energy') of current and proposed states
             F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbda)
@@ -160,7 +219,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                      'action_new_CA': np.array(action_toCAs)}, 
                     y=np.array(gains),
                     epochs=2,
-                    callbacks=[tbCallback])
+                    callbacks=[tbCallback],
+                    verbose=0)
 
         # reset the permutation of partitions
         Tract.restorePartition(curPartition)
@@ -203,11 +263,12 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             # Get updated variance of population distribution
             pop_std2 = np.std(CommunityArea.population)
             # evaluate new partition
-            mae2, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+            mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
             std_series.append(pop_std2)
             F_series.append(get_f(mae2, T, pop_std2, lmbda=lmbda))
-            print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
+            if iter_cnt % 10 == 0:
+                print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
             # Update error, variance
             mae1, pop_std1 = mae2, pop_std2
             mae_index.append(iter_cnt)
