@@ -20,7 +20,7 @@ from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     global M, T, lmbda, featureName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
         mae_series, mae_index, sd_series,pop_sd_1,f_series,epsilon
-    print "# initialize"
+    print "# initialize {}".format(project_name)
     """
     epsilon: Dictionary for convergence criteria.
         - Keys:
@@ -34,7 +34,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
     #targetName = 'total' # train_average_house_price
-    M = 100
+    M = 500
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
@@ -176,7 +176,7 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
 
     # Sample tract (on boundary) within previously sampled community area
     t = np.random.choice(a=sample_ca_boundary_tracts, size=1, replace=False)[0]
-    sample_ca_prob = ca_probs.ix[sample_ca_id]
+    sample_ca_prob = ca_probs.loc[sample_ca_id]
 
     tract_prob = 1 / float(len(sample_ca_boundary_tracts))
     if log:
@@ -250,7 +250,6 @@ def mcmcSamplerUniform(sample_func,
             sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
             writeBetasToFile(project_name, regression_coeff)
-            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_sd_1 = mae2, pop_sd_2
             mae_index.append(iter_cnt)
@@ -258,6 +257,8 @@ def mcmcSamplerUniform(sample_func,
             # update tract boundary set for next round sampling 
             Tract.updateBoundarySet(t)
             cnt = 0 # reset counter
+            if iter_cnt % 50 == 0:
+                print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
 
             if isConvergent(epsilon,f_series):
                 # when mae converges
@@ -274,7 +275,7 @@ def mcmcSamplerUniform(sample_func,
             t.CA = prv_caid
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
 
-        if iter_cnt % 100 == 0:
+        if iter_cnt % 500 == 0:
             CommunityArea.visualizeCAs(iter_cnt=iter_cnt,
                                        fname=project_name+"-CAs-iter-progress.png")
             CommunityArea.visualizePopDist(iter_cnt=iter_cnt,
@@ -345,6 +346,7 @@ def mcmcSamplerSoftmax(project_name,targetName):
         # Update current state to proposed state
         t.CA = new_caid
         CommunityArea.updateCAFeatures(t, prv_caid, new_caid)
+        # update tract boundary set for next round sampling
         Tract.updateBoundarySet(t)
         # Get updated variance of population distribution
         pop_sd_2 = np.std(CommunityArea.population)
@@ -383,14 +385,13 @@ def mcmcSamplerSoftmax(project_name,targetName):
             sd_series.append(pop_sd_2)
             f_series.append(f_proposed)
             writeBetasToFile(project_name, regression_coeff)
-            print "Iteration {}: {} --> {} in {} steps".format(iter_cnt, mae1, mae2, cnt)
             # Update error, variance
             mae1, pop_sd_1,errors1 = mae2, pop_sd_2,errors2
             mae_index.append(iter_cnt)
 
-            # update tract boundary set for next round sampling
-
             cnt = 0  # reset counter
+            if iter_cnt % 50 == 0:
+                print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
 
             if isConvergent(epsilon,f_series):
                 # when mae converges
@@ -399,8 +400,6 @@ def mcmcSamplerSoftmax(project_name,targetName):
                                                       len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(iter_cnt=None,fname=project_name+"-CAs-iter-final.png")
                 CommunityArea.visualizePopDist(iter_cnt=None,fname=project_name+'-pop-distribution-final')
-
-
                 break
 
         else:
@@ -409,7 +408,7 @@ def mcmcSamplerSoftmax(project_name,targetName):
             CommunityArea.updateCAFeatures(t, new_caid, prv_caid)
             Tract.updateBoundarySet(t)
 
-        if iter_cnt % 100 == 0:
+        if iter_cnt % 500 == 0:
             CommunityArea.visualizeCAs(iter_cnt=iter_cnt,
                                        fname=project_name + "-CAs-iter-progress.png")
             CommunityArea.visualizePopDist(iter_cnt=iter_cnt,
@@ -421,6 +420,8 @@ def mcmcSamplerSoftmax(project_name,targetName):
                                 f_array=f_series,
                                 lmbda=lmbda,
                                 fname=project_name + '-mcmc-diagnostics-progess')
+    if cnt > M:
+        print "Cannot find better flip within {} steps".format(cnt)
 
 def leaveOneOut_evaluation(year, targetName, info_str="optimal boundary"):
     """
@@ -510,6 +511,7 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
     :param targetName: Predicted value. y in regression model
     :return:
     """
+    global mae_series, sd_series, f_series
     if targetName not in ['total','train_average_house_price']:
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
@@ -541,6 +543,9 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 
 if __name__ == '__main__':
-    MCMC_softmax_proposal('naive-sampler-tune',
-               targetName='total',
-               lmbda=.01,f_sd=1.5, Tt=.05)
+    MCMC_softmax_proposal('house-price-softmax',
+               targetName='train_average_house_price',
+               lmbda=0.001, f_sd=1.5, Tt=0.05)
+    naive_MCMC('house-price-naive',
+               targetName='train_average_house_price',
+               lmbda=0.001, f_sd=1.5, Tt=0.05)

@@ -12,6 +12,7 @@ from shapely.geometry import Polygon, box
 import shapefile
 from feature_utils import *
 from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralClustering
+import numpy as np
 
 
 class Tract:
