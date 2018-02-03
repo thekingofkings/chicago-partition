@@ -152,4 +152,3 @@ if __name__ == '__main__':
     Tract.createAllTracts()
     CommunityArea.createAllCAs(Tract.tracts)
 #    CommunityArea.visualizeCAs()
-    
