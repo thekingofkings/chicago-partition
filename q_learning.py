@@ -16,6 +16,7 @@ from shapely.ops import cascaded_union
 import random
 import numpy as np
 import math
+import os
 from MCMC import leaveOneOut_evaluation, get_f,isConvergent
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
@@ -170,66 +171,72 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
     # restore training data
 #    CommunityArea._initializeCAfeatures(2010)
     model, tbCallback = DQN_model()
+    model_filepath = "dqn-house-price.params"
+    if os.path.exists(model_filepath):
+        model.load_weights(model_filepath)
+    dqn_learn = True
 
     print "# sampling"
     while True:
         iter_cnt += 1
-        
-        i = 0
-        action_tracts = []
-        action_toCAs = []
-        partitions = []
-        gains = []
-        curPartition = Tract.getPartition()
 
-        F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbda)
-        # random sample a batch for Q-learning
-        while i < 32:
-            state = Tract.getPartition()
-            sample_res = sample_once()
-            if sample_res == None:
-                continue
+        if dqn_learn:
+            i = 0
+            action_tracts = []
+            action_toCAs = []
+            partitions = []
+            gains = []
+            curPartition = Tract.getPartition()
 
-            t, prv_caid, new_caid = sample_res
-            t.CA = new_caid
-            # update communities features for evaluation
-            CommunityArea.updateCAFeatures(*sample_res)
-            # Get updated variance of population distribution
-            pop_std2 = np.std(CommunityArea.population)
-            # evaluate new partition
-            mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
-            # Calculate acceptance probability --> Put on log scale
-            # calculate f ('energy') of current and proposed states
-            F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbda)
-            gain = 1 / (1 + math.exp(- F_next + F_cur))
+            F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbda)
+            # random sample a batch for Q-learning
+            while i < 32:
+                state = Tract.getPartition()
+                sample_res = sample_once()
+                if sample_res == None:
+                    continue
+    
+                t, prv_caid, new_caid = sample_res
+                t.CA = new_caid
+                # update communities features for evaluation
+                CommunityArea.updateCAFeatures(*sample_res)
+                # Get updated variance of population distribution
+                pop_std2 = np.std(CommunityArea.population)
+                # evaluate new partition
+                mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
+                # Calculate acceptance probability --> Put on log scale
+                # calculate f ('energy') of current and proposed states
+                F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbda)
+                gain = 1 / (1 + math.exp(- F_next + F_cur))
+    
+                partitions.append(state)
+                action_tracts.append(Tract.getTractPosID(t))
+                action_toCAs.append(new_caid-1)
+                gains.append(gain)
+    
+                Tract.updateBoundarySet(t)
+                i += 1
+                cnt += 1
+                F_cur = F_next
+    
+#            print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
+            model.fit(x={'partition': np.array(partitions)-1, 
+                         'action_target_tract': np.array(action_tracts), 
+                         'action_new_CA': np.array(action_toCAs)}, 
+                        y=np.array(gains),
+                        epochs=2,
+                        callbacks=[tbCallback],
+                        verbose=0)
 
-            partitions.append(state)
-            action_tracts.append(Tract.getTractPosID(t))
-            action_toCAs.append(new_caid-1)
-            gains.append(gain)
-
-            Tract.updateBoundarySet(t)
-            i += 1
-            cnt += 1
-            F_cur = F_next
-
-#        print "fit model. samples gains min {}, mean {}, max {}".format(np.min(gains), np.mean(gains), np.max(gains))
-        model.fit(x={'partition': np.array(partitions)-1, 
-                     'action_target_tract': np.array(action_tracts), 
-                     'action_new_CA': np.array(action_toCAs)}, 
-                    y=np.array(gains),
-                    epochs=2,
-                    callbacks=[tbCallback],
-                    verbose=0)
-
-        # reset the permutation of partitions
-        Tract.restorePartition(curPartition)
-        Tract.initializeBoundarySet()
-        CommunityArea.CAs = {}
-        CommunityArea.createAllCAs(Tract.tracts)
+            # reset the permutation of partitions
+            Tract.restorePartition(curPartition)
+            Tract.initializeBoundarySet()
+            CommunityArea.CAs = {}
+            CommunityArea.createAllCAs(Tract.tracts)
+            dqn_learn = False
         
         j = 0
-        gain_highest = 0.4
+        gain_highest = 0.5
         action_tract = None
         action_ca = None
         gain_preds = []
@@ -253,7 +260,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
         # take the best action
         if action_tract is None or action_ca is None:
-            print "!== Did not find an action to improve within 32 trials. Restart"
+            print "!== Did not find an action to improve within 32 trials. Restart and update DQN"
+            dqn_learn = True
             continue
         else:
             prv_caid = action_tract.CA
@@ -266,7 +274,11 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
             std_series.append(pop_std2)
-            F_series.append(get_f(mae2, T, pop_std2, lmbda=lmbda))
+            f_cur = get_f(mae2, T, pop_std2, lmbda=lmbda)
+            if f_cur <= F_series[-1]:
+                print "DQN not accurate. Update DQN"
+                dqn_learn = True
+            F_series.append(f_cur)
             if iter_cnt % 10 == 0:
                 print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
             # Update error, variance
@@ -290,16 +302,19 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
 
                 Tract.writePartition(fname=project_name + "-final-partition.txt")
-                del model
                 break
 
         if iter_cnt % 500 == 0:
             CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
             CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
                                            iter_cnt=iter_cnt)
+    
+    model.save_weights(model_filepath)
+    del model
 
 
 if __name__ == '__main__':
-    for i in range(3, 11):
-        project_name = "q-learning-v{}".format(i)
-        q_learning(project_name,targetName='total')
+    for i in range(10):
+        q_learning('house-price-q-learning-sampler-{}'.format(i),
+                   targetName='train_average_house_price',
+                   lmbd=0.008, f_sd=4, Tt=0.1)
