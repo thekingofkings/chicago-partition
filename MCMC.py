@@ -40,7 +40,6 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     CA_maxsize = 30
     # Plot original community population distribution
     CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
-    print "# sampling"
     CA_maxsize = 30
     mae1, _, _,errors1,regression_coeff_init = NB_regression_training(CommunityArea.features, featureName, targetName)
     writeBetasToFile(project_name,regression_coeff_init)
@@ -131,7 +130,7 @@ def writeBetasToFile(project_name,betas):
     betas.to_csv(fname)
 
 
-def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None,log=False):
+def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_ca_prob=None,log=True):
     """
     Function to hierarchicaly sample (1) Communities, (2) tracts within the given community
     :param errors: Vector of errors for softmax
@@ -288,6 +287,10 @@ def mcmcSamplerUniform(sample_func,
                                 lmbda=lmbda,
                                 fname=project_name+'-mcmc-diagnostics-progess')
 
+    if cnt > M:
+        print "Cannot find better flip within {} steps".format(cnt)
+
+
 
 def mcmcSamplerSoftmax(project_name,targetName):
     """
@@ -423,6 +426,8 @@ def mcmcSamplerSoftmax(project_name,targetName):
     if cnt > M:
         print "Cannot find better flip within {} steps".format(cnt)
 
+
+
 def leaveOneOut_evaluation(year, targetName, info_str="optimal boundary"):
     """
     Leave-one-out evaluation the current partition with next year crime rate.
@@ -452,10 +457,6 @@ def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
 
 
     initialize(project_name, targetName, lmbda, f_sd, Tt)
-    # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011,targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
-    # restore training data
-    CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'))
@@ -516,10 +517,6 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
     initialize(project_name, targetName, lmbda, f_sd, Tt)
-    # loo evaluation test data on original boundary
-    leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'), info_str="Administrative boundary")
-    # restore training data
-    CommunityArea._initializeCAfeatures(2010)
 
     mcmcSamplerSoftmax(project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
@@ -545,7 +542,8 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 if __name__ == '__main__':
     MCMC_softmax_proposal('house-price-softmax',
                targetName='train_average_house_price',
-               lmbda=0.001, f_sd=1.5, Tt=0.05)
+               lmbda=0.005, f_sd=3, Tt=0.1)
     naive_MCMC('house-price-naive',
                targetName='train_average_house_price',
-               lmbda=0.001, f_sd=1.5, Tt=0.05)
+               lmbda=0.005, f_sd=3, Tt=0.1)
+#    MCMC_softmax_proposal("crime-softmax")

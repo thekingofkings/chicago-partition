@@ -133,9 +133,9 @@ if __name__ == '__main__':
     print "----TASK: Crime Prediction----\n"
     print "Rand Index:"
     print "-----------"
+    randIdxSimulation('naive-sampler',n_sim=10)
     randIdxSimulation('softmax-sampler',n_sim=10)
     randIdxSimulation('q-learning', n_sim=10)
-    randIdxSimulation('naive-sampler',n_sim=10)
     print "------------"
     print "Simulation Summaries:"
     getSimulationSummaryStats('naive-sampler',n_sim=10)
@@ -144,9 +144,9 @@ if __name__ == '__main__':
     print ""
     print "----TASK: House Price Prediction----\n"
     print "Rand Index:"
+    randIdxSimulation('house-price-naive-sampler',n_sim=10)
     randIdxSimulation('house-price-softmax-sampler',n_sim=10)
     randIdxSimulation('house-price-q-learning-sampler', n_sim=10)
-    randIdxSimulation('house-price-naive-sampler',n_sim=10)
     print "------------"
     print "Simulation Summaries:"
     getSimulationSummaryStats('house-price-naive-sampler',n_sim=10)
