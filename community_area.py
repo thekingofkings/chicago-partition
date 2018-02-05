@@ -44,10 +44,10 @@ class CommunityArea:
         # calculate the average house price (training and testing)
         fdf['train_average_house_price'] = fdf['train_price'] / fdf['train_count']
         fdf['train_average_house_price'] = \
-                    fdf['train_average_house_price'].replace([np.inf, -np.inf, np.nan], 0)
+                    fdf['train_average_house_price'].replace([np.inf, -np.inf, np.nan], CommunityArea.default_house_price_train)
         fdf['test_average_house_price'] = fdf['test_price'] / fdf['test_count']
         fdf['test_average_house_price'] = \
-                    fdf['test_average_house_price'].replace([np.inf, -np.inf, np.nan], 0)
+                    fdf['test_average_house_price'].replace([np.inf, -np.inf, np.nan], CommunityArea.default_house_price_test)
         self.features= fdf
         # calculate summarized demo features, such as entropy / percentage 
         if hasattr(CommunityArea, "featureNames"):
@@ -84,6 +84,8 @@ class CommunityArea:
     def _initializeCAfeatures(cls, crimeYear=2010):
         cls.features_raw = Tract.features if hasattr(Tract, "features") \
             and Tract.crimeYear == crimeYear else Tract.generateFeatures(crimeYear)
+        cls.default_house_price_train = np.sum(cls.features_raw['train_price']) / np.sum(cls.features_raw['train_count'])
+        cls.default_house_price_test = np.sum(cls.features_raw['test_price']) / np.sum(cls.features_raw['test_count'])
         cls.features_ca_dict = {}
         for ca in cls.CAs.values():
             ca.initializeField()

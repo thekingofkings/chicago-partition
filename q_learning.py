@@ -188,7 +188,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             gains = []
             curPartition = Tract.getPartition()
 
-            F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbda)
+            F_cur = get_f(ae=mae1, T=Tt, penalty=pop_std1, lmbda=lmbd)
             # random sample a batch for Q-learning
             while i < 32:
                 state = Tract.getPartition()
@@ -206,7 +206,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                 mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
                 # Calculate acceptance probability --> Put on log scale
                 # calculate f ('energy') of current and proposed states
-                F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbda)
+                F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbd)
                 gain = 1 / (1 + math.exp(- F_next + F_cur))
     
                 partitions.append(state)
@@ -274,7 +274,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             mae2, _, _, _, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
             mae_series.append(mae2)
             std_series.append(pop_std2)
-            f_cur = get_f(mae2, T, pop_std2, lmbda=lmbda)
+            f_cur = get_f(mae2, T, pop_std2, lmbda=lmbd)
             if f_cur <= F_series[-1]:
                 print "DQN not accurate. Update DQN"
                 dqn_learn = True
@@ -293,7 +293,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
                 mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
-                plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,
+                plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,lmbda=lmbd,
                                     fname=project_name)
                 writeSimulationOutput(project_name=project_name,
                                       error=mean_test_error,
@@ -314,7 +314,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
 
 if __name__ == '__main__':
-    for i in range(10):
+    for i in range(100):
         q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
                    lmbd=0.005, f_sd=3, Tt=0.1)

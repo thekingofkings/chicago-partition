@@ -1,0 +1,3 @@
+error: 35.6267
+iterations: 225
+acceptance rate: 0.5956
