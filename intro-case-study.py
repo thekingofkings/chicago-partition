@@ -76,18 +76,6 @@ caGeoData = caGeoData.merge(errors, left_on ='communityID',right_index = True)
 argmax_error = np.argmax(MCMC.errors1.values)
 # Plot results, label with community ID numbers
 
-fig, ax = plt.subplots()
-caGeoData.plot(ax=ax, edgecolor='red', alpha=0.8, linewidth=0.2, column='error', cmap='OrRd',figsize=(12,8))
-
-for i, row in caGeoData.iterrows():
-    ax.text(row.geometry.centroid.x,
-            row.geometry.centroid.y,
-            int(row.communityID),
-            horizontalalignment='center',
-            verticalalignment='center')
-plt.title("Errors")
-plt.savefig("plots/{}/community-area-map.png".format(project_name))
-plt.close()
 
 #CommunityArea.visualizeCAs(iter_cnt='initial',fname="{}/community-area-map.png".format(project_name))
 
@@ -97,8 +85,6 @@ feature_names = getIncomeFeatureNames()
 feature_names += ["total"]
 
 _, feature_dict = retrieve_income_features()
-
-
 
 # Write Interpretable feature names to file
 
@@ -119,13 +105,6 @@ X_ca_tracts = X_all_tract.ix[tract_ids][feature_names]
 
 X_ca_tracts.rename(feature_dict,axis = 'columns',inplace=True)
 
-for col in X_ca_tracts.columns:
-    X_ca_tracts[col].plot(kind='bar',figsize=(16,12))
-    plt.savefig("plots/{}/{}.png".format(project_name,col))
-    plt.close()
-    plt.clf()
-
-
 
 
 for x_i in feature_names:
@@ -137,8 +116,6 @@ for x_i in feature_names:
     x_i_mean_ca_tracts = np.mean(X_ca_tracts[good_feature_name])
     pct_diff = (x_i_mean_ca_tracts - x_i_mean_all) / x_i_mean_all
 
-
-
     print "----{}----".format(good_feature_name)
     print "Mean tract-level {:s} - all tracts: {:.4f} ".format(x_i,x_i_mean_all)
     print "Mean tract-level {:s} - community of interest: {:.4f}".format(x_i,x_i_mean_ca_tracts)
@@ -149,15 +126,33 @@ for x_i in feature_names:
 dist_mtx = pairwise_distances(X_ca_tracts.values)
 #dist_mtx = (dist_mtx - np.mean(dist_mtx.flatten())) / np.std(dist_mtx.flatten())
 
+fig, ax = plt.subplots(nrows=1,ncols=2,figsize=(18,8))
 
-fig, ax = plt.subplots(figsize=(8,8))
-ax.imshow(dist_mtx,cmap='bwr',interpolation='nearest')
-ax.set_xlabel("Tract ID",fontsize = 18)
-ax.set_ylabel("Tract ID",fontsize = 18)
-for tick in ax.get_xticklabels():
-    tick.set_fontsize(16)
-for tick in ax.get_yticklabels():
-    tick.set_fontsize(16)
-plt.savefig("plots/{}/heat-map.png".format(project_name))
+caGeoData.plot(ax=ax[0], edgecolor='black', alpha=0.8, linewidth=0.2, column='error', cmap='OrRd')
+
+for i, row in caGeoData.iterrows():
+    ax[0].text(row.geometry.centroid.x,
+            row.geometry.centroid.y,
+            int(row.communityID),
+            horizontalalignment='center',
+            verticalalignment='center',fontsize=12)
+ax[0].set_title("(a) Regression errors by administrative boundary",fontsize=20)
+
+
+
+ax[1].imshow(dist_mtx,cmap='bwr',interpolation='nearest')
+ax[1].set_xlabel("Tract ID",fontsize = 18)
+ax[1].set_ylabel("Tract ID",fontsize = 18)
+ax[1].set_title("(b) Similarity matrix of tracts within community #6",fontsize=20)
+
+plt.savefig("plots/{}/intro-case-study.png".format(project_name))
 plt.close()
 plt.clf()
+
+"""f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
+    axarr[0].plot(mae_index, np.array(error_array))
+    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
+    axarr[1].plot(mae_index, np.array(std_array))
+    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
+    axarr[2].plot(mae_index, f_array)
+    axarr[2].set_title('f - lambda = {}'.format(lmbda))"""
