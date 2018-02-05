@@ -16,9 +16,12 @@ targetName = 'total'
 
 # Functions
 
-
-
 def getIncomeFeatureNames():
+    """
+    Get a list of all tract-level features that are used in Hongjian's feature aggregation routine.
+    Mainly consists of race and income degraphics
+    :return: List of features
+    """
     features = []
     ethnics = ['H','B','I','D']
     # Racial features
@@ -34,6 +37,12 @@ def getIncomeFeatureNames():
     return features
 
 def getGeoData(parentDirectory=None):
+    """
+    Query census data and return as GeoDataFrame for easier plotting
+    :param parentDirectory: Project parent directory (str)
+    :return: [0]: GeoDataFrame of all tract-level data
+            [1]: GeoDataFrame of community-level data
+    """
     # Load shape file
     if parentDirectory is None:
         parentDirectory = ''
@@ -62,51 +71,50 @@ def getGeoData(parentDirectory=None):
 
     return chicago_tract_geod, chicago_ca_geod
 
+
+# Save parent directory (access data folder above)
 parentDirectory = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/"
+# Query chicago geo data
 tractGeoData, caGeoData = getGeoData(parentDirectory)
 
-
+# Initialize MCMC: learn regression using administrative boundaries
 MCMC.initialize(project_name=project_name, targetName=targetName, lmbd=0.75, f_sd=1.5, Tt=10)
-# Error = y_true - y_hat
 
+
+# Regression errors: error = y_true - y_hat
 errors = MCMC.errors1.to_frame('error')
 
-
+# Merge errors to full GeoDataFrame
 caGeoData = caGeoData.merge(errors, left_on ='communityID',right_index = True)
+# Find community with largest error
 argmax_error = np.argmax(MCMC.errors1.values)
-# Plot results, label with community ID numbers
-
-
-#CommunityArea.visualizeCAs(iter_cnt='initial',fname="{}/community-area-map.png".format(project_name))
-
+# Commnity object with largest error
 ca_main = CommunityArea.CAs[argmax_error]
+
+# Get list of tract-level features
 feature_names = getIncomeFeatureNames()
 # add total crime figures
 feature_names += ["total"]
 
+# Get a dictionary of census feature names (keys), and human readable feature names (values)
 _, feature_dict = retrieve_income_features()
 
 # Write Interpretable feature names to file
-
 f = open('output/{}-feature-names.txt'.format(project_name),'w')
 for key in feature_dict.keys():
     f.write("{}: {} \n".format(key,feature_dict[key]))
-
 f.close()
 
 tract_ids = []
 for t in ca_main.tracts.values():
     tract_ids.append(t.id)
 
-
-#tmp = Tract.features
 X_all_tract = Tract.features[feature_names]
 X_ca_tracts = X_all_tract.ix[tract_ids][feature_names]
-
 X_ca_tracts.rename(feature_dict,axis = 'columns',inplace=True)
 
 
-
+# Print deviance of given feature x_i from global mean
 for x_i in feature_names:
     if x_i == 'total':
         good_feature_name = 'total'
@@ -122,14 +130,12 @@ for x_i in feature_names:
     print "Percentage change: {:.4f}".format(pct_diff)
     print ""
 
-
+# Compute distance matrix of all tracts
 dist_mtx = pairwise_distances(X_ca_tracts.values)
-#dist_mtx = (dist_mtx - np.mean(dist_mtx.flatten())) / np.std(dist_mtx.flatten())
 
+# Plot error map and distance matrix
 fig, ax = plt.subplots(nrows=1,ncols=2,figsize=(18,8))
-
 caGeoData.plot(ax=ax[0], edgecolor='black', alpha=0.8, linewidth=0.2, column='error', cmap='OrRd')
-
 for i, row in caGeoData.iterrows():
     ax[0].text(row.geometry.centroid.x,
             row.geometry.centroid.y,
@@ -137,8 +143,6 @@ for i, row in caGeoData.iterrows():
             horizontalalignment='center',
             verticalalignment='center',fontsize=12)
 ax[0].set_title("(a) Regression errors by administrative boundary",fontsize=20)
-
-
 
 ax[1].imshow(dist_mtx,cmap='bwr',interpolation='nearest')
 ax[1].set_xlabel("Tract ID",fontsize = 18)
@@ -148,11 +152,3 @@ ax[1].set_title("(b) Similarity matrix of tracts within community #6",fontsize=2
 plt.savefig("plots/{}/intro-case-study.png".format(project_name))
 plt.close()
 plt.clf()
-
-"""f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
-    axarr[0].plot(mae_index, np.array(error_array))
-    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
-    axarr[1].plot(mae_index, np.array(std_array))
-    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
-    axarr[2].plot(mae_index, f_array)
-    axarr[2].set_title('f - lambda = {}'.format(lmbda))"""
