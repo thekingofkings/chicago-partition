@@ -79,6 +79,8 @@ class CommunityArea:
         cls._initializeCAfeatures()
         return CAs
 
+    #def getSingleFeatureFor
+
 
     @classmethod
     def _initializeCAfeatures(cls, crimeYear=2010):

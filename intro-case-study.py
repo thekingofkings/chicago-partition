@@ -1,5 +1,4 @@
 import MCMC
-import os
 import geopandas as gp
 from community_area import CommunityArea
 from feature_utils import retrieve_income_features
@@ -73,9 +72,8 @@ def getGeoData(parentDirectory=None):
 
 
 # Save parent directory (access data folder above)
-parentDirectory = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/"
 # Query chicago geo data
-tractGeoData, caGeoData = getGeoData(parentDirectory)
+tractGeoData, caGeoData = getGeoData()
 
 # Initialize MCMC: learn regression using administrative boundaries
 MCMC.initialize(project_name=project_name, targetName=targetName, lmbd=0.75, f_sd=1.5, Tt=10)
