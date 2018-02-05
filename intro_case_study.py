@@ -112,6 +112,19 @@ def fig_error_heatmap(caGeoData):
 
 
 
+def fig_tract_sim_matrix(dist_mtx):
+    """
+    Plot the similarity matrix within outlier CA
+    """
+    plt.figure(figsize=(6,6))
+    ax = plt.gca()
+    ax.imshow(dist_mtx,cmap='bwr',interpolation='nearest')
+    ax.set_xlabel("Tract ID",fontsize = 18)
+    ax.set_ylabel("Tract ID",fontsize = 18)
+    plt.tight_layout()
+    plt.savefig("plots/case-study-crime/tract_sim_matrix.pdf")
+    
+
 if __name__ == '__main__':
     # Save parent directory (access data folder above)
     # Query chicago geo data
