@@ -84,18 +84,25 @@ class Tract:
         return tracts
 
     @classmethod
-    def visualizeTracts(cls, tracts=None):
-        if tracts == None:
+    def visualizeTracts(cls, tractIDs=None, tractColors=None, fsize=(16,16), fname="tracts.png"):
+        tracts = {}
+        if tractIDs == None:
             tracts = cls.tracts
+        else:
+            for tid in tractIDs:
+                tracts[tid] = cls.tracts[tid]
+        if tractColors == None:
+            tractColors = dict(zip(tracts.keys(), ['green']* len(tracts)))
+        print tractColors
         from descartes import PolygonPatch
-        f = plt.figure(figsize=(16, 16))
+        f = plt.figure(figsize=fsize)
         ax = f.gca()
-        for _, t in tracts.items():
-            ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
+        for k, t in tracts.items():
+            ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc=tractColors[k]))
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
-        plt.savefig("tracts.png")
+        plt.savefig(fname)
 
     @classmethod
     def generateFeatures(cls, crimeYear=2010):

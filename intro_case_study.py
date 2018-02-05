@@ -112,6 +112,22 @@ def fig_error_heatmap(caGeoData):
 
 
 
+def fig_tracts_within_outlier_CA(tract_ids, dist_mtx):
+    """
+    Visualize tracts within the outlier CA
+    """
+    scores = np.mean(dist_mtx, axis=1)
+    sort_idx = np.argsort(-scores)
+    tractColors = {}
+    for cnt, idx in enumerate(sort_idx):
+        if cnt < 5:
+            tractColors[tract_ids[idx]] = 'red'
+        else:
+            tractColors[tract_ids[idx]] = 'blue'
+    Tract.visualizeTracts(tract_ids, tractColors, (8,6), "plots/case-study-crime/tracts_within_CA.pdf")
+
+
+
 def fig_tract_sim_matrix(dist_mtx):
     """
     Plot the similarity matrix within outlier CA
@@ -142,7 +158,7 @@ if __name__ == '__main__':
     # Find community with largest error
     argmax_error = np.argmax(MCMC.errors1.values)
     # Commnity object with largest error
-    ca_main = CommunityArea.CAs[argmax_error]
+    ca_main = CommunityArea.CAs[argmax_error+1]
     
     # Get list of tract-level features
     feature_names = getIncomeFeatureNames()
@@ -158,9 +174,7 @@ if __name__ == '__main__':
         f.write("{}: {} \n".format(key,feature_dict[key]))
     f.close()
     
-    tract_ids = []
-    for t in ca_main.tracts.values():
-        tract_ids.append(t.id)
+    tract_ids = ca_main.tracts.keys()
     
     X_all_tract = Tract.features[feature_names]
     X_ca_tracts = X_all_tract.loc[tract_ids][feature_names]
