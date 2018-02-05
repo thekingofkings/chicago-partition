@@ -8,6 +8,8 @@ Created on Tue Jan 16 07:57:36 2018
 Q-learning as adaptive MCMC method
 
 """
+import matplotlib
+matplotlib.use('Agg')
 from mcmcSummaries import writeSimulationOutput, plotMcmcDiagnostics
 from tract import Tract
 from community_area import CommunityArea
@@ -21,8 +23,6 @@ from MCMC import leaveOneOut_evaluation, get_f,isConvergent
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 from keras.callbacks import TensorBoard
-
-
 
 
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
@@ -236,7 +236,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
             dqn_learn = False
         
         j = 0
-        gain_highest = 0.5
+        gain_highest = 0.45
         action_tract = None
         action_ca = None
         gain_preds = []
@@ -315,6 +315,6 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
 if __name__ == '__main__':
     for i in range(10):
-        q_learning('house-price-q-learning-sampler-{}'.format(i),
+        q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.008, f_sd=4, Tt=0.1)
+                   lmbd=0.005, f_sd=3, Tt=0.1)
