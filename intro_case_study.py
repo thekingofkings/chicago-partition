@@ -17,7 +17,7 @@ targetName = 'total'
 
 # Functions
 
-def outlier_crime_prediction():
+def fig_crime_prediction_outlier():
     """
     The absolute prediction errors are stored through
         pickle.dump(errors, open("plots/case-study-crime/abs-errors.pickle", 'w'))
@@ -91,6 +91,25 @@ def getGeoData(parentDirectory=None):
     chicago_tract_geod['tractID'] = chicago_tract_geod['tractID'].apply(int)
 
     return chicago_tract_geod, chicago_ca_geod
+
+
+def fig_error_heatmap(caGeoData):
+    """
+    Plot prediction error heat map
+    """
+    plt.figure(figsize=(6, 6))
+    ax = plt.gca()
+    caGeoData.plot(ax=ax, edgecolor='black', alpha=0.8, linewidth=0.2, column='error', cmap='OrRd')
+    for i, row in caGeoData.iterrows():
+        ax.text(row.geometry.centroid.x,
+                row.geometry.centroid.y,
+                int(row.communityID),
+                horizontalalignment='center',
+                verticalalignment='center',fontsize=12)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig("plots/case-study-crime/error_heatmap.pdf")
+
 
 
 if __name__ == '__main__':
