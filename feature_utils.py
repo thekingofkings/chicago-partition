@@ -145,7 +145,7 @@ def retrieve_house_price_features():
     Read the intermediate file containing house price features. Refer to 
     `house_price.py` for more details.
     """
-    return pd.DataFrame.from_csv("data/house_price_features.df")
+    return pd.read_csv("data/house_price_features.df", index_col=0)
 
 
 def retrieve_POI_features():

@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 from feature_utils import retrieve_summarized_income_features
 
+
 class CommunityArea:
     
     def __init__(self, caID):
@@ -141,7 +142,7 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",by = None,labels=False,title=None):
+    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",by=None,labels=False,title=None):
         if CAs == None:
             CAs = cls.CAs
         if iter_cnt is None:
@@ -169,7 +170,7 @@ class CommunityArea:
         else:
 
             for k, t in CAs.items():
-                ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green'))
+                ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green', lw=1.5))
 
                 if labels:
                     by_k = round(by.ix[k],4)
@@ -185,8 +186,11 @@ class CommunityArea:
         plt.tight_layout()
         if title is None:
             plt.title('Community Structure -- Iterations: {}'.format(iter_cnt))
+        elif title == '':
+            pass
         else:
             plt.title(title)
+        plt.tight_layout()
         plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
@@ -201,26 +205,44 @@ class CommunityArea:
         plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
-        
 
 
-if __name__ == '__main__':
+def fig_clustering_baseline(keepBest=True):
+    from regression import NB_regression_evaluation
+
     Tract.createAllTracts()
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs()
+    Tract.generateFeatures(2011)
 
     Tract.agglomerativeClustering()
     CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="agg_CAs.png")
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+    CommunityArea.visualizeCAs(fname="agg_CAs.pdf", title='')
 
-    Tract.agglomerativeClustering(algorithm="average_cosine")
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="agg_CAs_average_cosine.png")
-
-    Tract.agglomerativeClustering(algorithm="average_cityblock")
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="agg_CAs_average_cityblock.png")
-    Tract.agglomerativeClustering(algorithm="complete_cosine")
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
+    if not keepBest:
+        Tract.agglomerativeClustering(algorithm="average_cosine")
+        CommunityArea.createAllCAs(Tract.tracts)
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+        CommunityArea.visualizeCAs(fname="agg_CAs_average_cosine.png")
     
+        Tract.agglomerativeClustering(algorithm="average_cityblock")
+        CommunityArea.createAllCAs(Tract.tracts)
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+        CommunityArea.visualizeCAs(fname="agg_CAs_average_cityblock.png")
+    
+        Tract.agglomerativeClustering(algorithm="complete_cosine")
+        CommunityArea.createAllCAs(Tract.tracts)
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+        print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+        CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
+
+if __name__ == '__main__':
+#    Tract.createAllTracts()
+#    CommunityArea.createAllCAs(Tract.tracts)
+#    CommunityArea.visualizeCAs()
+
+    fig_clustering_baseline()
+
+
