@@ -102,6 +102,10 @@ def retrieve_summarized_income_features(featureDF):
     income_by_ethnicity = ['mean_%s01'%ethnic for ethnic in ethnics]
     featureDF['income_variance'] = featureDF.apply(lambda row: _entropy(row, income_by_ethnicity), axis=1)
 
+    # Compute 'poverty index'
+    #total_income_features = ["B190100%" % x for x in range(2,18)]
+
+
 
     added_features.append('B1901Z01')
     for ethnic in ethnics:
