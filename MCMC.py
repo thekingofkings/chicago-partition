@@ -31,8 +31,9 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     epsilon = {"acc_len":100,"prev_len":50,"f_sd":f_sd}
     random.seed(0)
     Tract.createAllTracts()
-    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.createAllCAs(Tract.tracts,singleFeature='income_variance')
     featureName = CommunityArea.featureNames
+    ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
     M = 500
     T = Tt

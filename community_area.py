@@ -58,7 +58,7 @@ class CommunityArea:
 
 
     @classmethod
-    def createAllCAs(cls, tracts):
+    def createAllCAs(cls, tracts,singleFeature=None):
         """
         tracts:
             a dict of Tract, each of which has CA assignment.
@@ -76,10 +76,27 @@ class CommunityArea:
             else:
                 CAs[trct.CA].addTract(tID, trct)
         cls.CAs = CAs
+        cls.singleFeatureName = singleFeature
         cls._initializeCAfeatures()
         return CAs
 
-    #def getSingleFeatureFor
+    @classmethod
+    def getSingleFeatureForStudy(cls):
+        # TODO: Not sure this format is necessary - Consider removing singleFeature class attribute
+        x_i = cls.singleFeatureName
+        if x_i is None:
+
+            cls.singleFeature = None
+
+        elif x_i == 'income_variance':
+
+            cls.singleFeature = cls.features[x_i]
+
+        elif x_i == 'poverty_index':
+            pass
+        else:
+            raise Exception("Invalid feature passed to getSingleFeatureForStudy() ")
+
 
 
     @classmethod
@@ -96,6 +113,9 @@ class CommunityArea:
         # Save population feature for partitioning constraints d
         cls.populationFeature = "B1901001"
         cls.population = cls.features[cls.populationFeature]
+        cls.getSingleFeatureForStudy()
+
+
 
 
     @classmethod
@@ -116,25 +136,57 @@ class CommunityArea:
         # convert dict of pandas.Series into DataFrame
         cls.features = pd.concat(cls.features_ca_dict.values())
         cls.population = cls.features[cls.populationFeature]
-        
+
+
 
         
     @classmethod
-    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png"):
+    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",by = None,labels=False,title=None):
         if CAs == None:
             CAs = cls.CAs
         if iter_cnt is None:
             iter_cnt = "completed"
 
         from descartes import PolygonPatch
-        f = plt.figure(figsize=(6,6))
+        f = plt.figure(figsize=(12,12))
         ax = f.gca()
-        for k, t in CAs.items():
-            ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc="green"))
+
+        if by is not None:
+            col_gradient = np.linspace(0.05, 1, len(by))
+            by.sort_values(ascending=False,inplace=True)
+            color_map = dict(zip(by.index,col_gradient))
+
+            for k, t in CAs.items():
+                ax.add_patch(PolygonPatch(t.polygon, alpha=0.85, fc=(1, color_map[k], 0)))
+
+                if labels:
+                    by_k = round(by.ix[k],4)
+                    ax.text(t.polygon.centroid.x,
+                               t.polygon.centroid.y,
+                               (int(t.id), by_k),
+                               horizontalalignment='center',
+                               verticalalignment='center', fontsize=8)
+        else:
+
+            for k, t in CAs.items():
+                ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green'))
+
+                if labels:
+                    by_k = round(by.ix[k],4)
+                    ax.text(t.polygon.centroid.x,
+                               t.polygon.centroid.y,
+                                (int(t.id),by_k),
+                               horizontalalignment='center',
+                               verticalalignment='center', fontsize=8)
+
+
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
-        plt.title('Community Structure -- Iterations: {}'.format(iter_cnt))
+        if title is None:
+            plt.title('Community Structure -- Iterations: {}'.format(iter_cnt))
+        else:
+            plt.title(title)
         plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
