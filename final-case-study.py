@@ -16,13 +16,13 @@ MCMC.initialize(project_name=project_name, targetName=targetName, lmbd=0.75, f_s
 
 singleFeatureForStudyInit = CommunityArea.singleFeature.copy()
 CommunityArea.visualizeCAs(fname='{}/before-{}.png'.format(project_name,singleFeatureName),
-                           by=singleFeatureForStudyInit,
+                           plot_measure=singleFeatureForStudyInit,
                            labels=True,
                            title = 'Before: {}'.format(singleFeatureName))
 
 targetInit = CommunityArea.features[targetName].copy()
 CommunityArea.visualizeCAs(fname='{}/before-{}.png'.format(project_name,targetName),
-                           by=targetInit,
+                           plot_measure=targetInit,
                            labels=True,
                            title='Before: Crime count')
 
@@ -34,13 +34,13 @@ CommunityArea.createAllCAs(Tract.tracts,singleFeature='income_variance')
 
 singleFeatureForStudyFinal = CommunityArea.singleFeature.copy()
 CommunityArea.visualizeCAs(fname='{}/after-{}.png'.format(project_name,singleFeatureName),
-                           by=singleFeatureForStudyFinal,
+                           plot_measure=singleFeatureForStudyFinal,
                            labels=True,
                            title = "After: {}".format(singleFeatureName))
 
 
 targetFinal = CommunityArea.features[targetName].copy()
 CommunityArea.visualizeCAs(fname='{}/after-{}.png'.format(project_name,targetName),
-                           by=targetFinal,
+                           plot_measure=targetFinal,
                            labels=True,
                            title = "After: Crime Count")

@@ -142,7 +142,24 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",by=None,labels=False,title=None):
+    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",plot_measure=None,labels=False,title=None):
+        """
+        Class method to plot community boundaries. Arguments available for plotting a continuous measure over the
+        community areas
+        :param iter_cnt: (int) Specifies the current iteration 
+                            Use if plotting updates in a sequential algorithm; i.e., MCMC. 
+                            will be inserted into plot title if title = None
+        :param CAs: (dict) Dictionary of communities. If none is given, default is class attribute CAs
+        :param fname: (str) name of .png file to be written to disk
+        :param plot_measure: (Series) Use if we want to visually scale a continous measure by community are (i.e., heat map)
+                             plot_measure is pd.Series instance with the community ID's as the index, and the measure as the
+                             values
+        :param labels: (bool) Used in conjuction with plot_measure. If True, plot the community ID and measure value at the
+                                centroid of each community area
+        :param title: (str) Title for plot saved .png. If title = '', then no title, If title is None, then use default
+                            title that prints iteration count
+        :return: 
+        """
         if CAs == None:
             CAs = cls.CAs
         if iter_cnt is None:
@@ -152,19 +169,25 @@ class CommunityArea:
         f = plt.figure(figsize=(12,12))
         ax = f.gca()
 
-        if by is not None:
-            col_gradient = np.linspace(0.05, 1, len(by))
-            by.sort_values(ascending=False,inplace=True)
-            color_map = dict(zip(by.index,col_gradient))
+
+        if plot_measure is not None:
+            # Create heat map
+            # Scale colors by sorted values of plot_measure
+            col_gradient = np.linspace(0.05, 1, len(plot_measure))
+            plot_measure.sort_values(ascending=False,inplace=True)
+            # Create color map (dict). Keys: Community ID - Values: Green values (in RGB) in [0,1] interval
+            color_map = dict(zip(plot_measure.index,col_gradient))
 
             for k, t in CAs.items():
                 ax.add_patch(PolygonPatch(t.polygon, alpha=0.85, fc=(1, color_map[k], 0)))
 
                 if labels:
-                    by_k = round(by.ix[k],4)
+                    # Using plot_measure, label each community with its ID (t.id),
+                    # and value (plot_measure.ix[k]) at the centroid
+                    plot_measure_k = round(plot_measure.ix[k],4)
                     ax.text(t.polygon.centroid.x,
                                t.polygon.centroid.y,
-                               (int(t.id), by_k),
+                               (int(t.id), plot_measure_k),
                                horizontalalignment='center',
                                verticalalignment='center', fontsize=8)
         else:
@@ -173,10 +196,10 @@ class CommunityArea:
                 ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green', lw=1.5))
 
                 if labels:
-                    by_k = round(by.ix[k],4)
+                    # Label plot with community ids at each respective centroid
                     ax.text(t.polygon.centroid.x,
                                t.polygon.centroid.y,
-                                (int(t.id),by_k),
+                                int(t.id),
                                horizontalalignment='center',
                                verticalalignment='center', fontsize=8)
 
