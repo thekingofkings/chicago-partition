@@ -28,7 +28,7 @@ from keras.callbacks import TensorBoard
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     global featureName, M, T, lmbda, CA_maxsize, mae1, mae_series, mae_index, \
         iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
-    print "# initialize"
+    print "# initialize {}".format(project_name)
     random.seed(0)
     epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": f_sd}
     Tract.createAllTracts()
