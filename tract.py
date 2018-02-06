@@ -214,6 +214,15 @@ class Tract:
             f.write("\n")
         f.close()
 
+
+    @classmethod
+    def readPartition(cls,fname):
+        f = open("output/" + fname, 'r')
+        partition = f.readlines()
+        partition_clean = [int(x.rstrip()) for x in partition]
+        f.close()
+        cls.restorePartition(partition=partition_clean)
+
     @classmethod
     def agglomerativeClustering(cls, algorithm = "ward"):
         '''
