@@ -59,7 +59,7 @@ class CommunityArea:
 
 
     @classmethod
-    def createAllCAs(cls, tracts,singleFeature=None):
+    def createAllCAs(cls, tracts):
         """
         tracts:
             a dict of Tract, each of which has CA assignment.
@@ -77,27 +77,8 @@ class CommunityArea:
             else:
                 CAs[trct.CA].addTract(tID, trct)
         cls.CAs = CAs
-        cls.singleFeatureName = singleFeature
         cls._initializeCAfeatures()
         return CAs
-
-    @classmethod
-    def getSingleFeatureForStudy(cls):
-        # TODO: Not sure this format is necessary - Consider removing singleFeature class attribute
-        x_i = cls.singleFeatureName
-        if x_i is None:
-
-            cls.singleFeature = None
-
-        elif x_i == 'income_variance':
-
-            cls.singleFeature = cls.features[x_i]
-
-        elif x_i == 'poverty_index':
-            pass
-        else:
-            raise Exception("Invalid feature passed to getSingleFeatureForStudy() ")
-
 
 
     @classmethod
@@ -114,7 +95,7 @@ class CommunityArea:
         # Save population feature for partitioning constraints d
         cls.populationFeature = "B1901001"
         cls.population = cls.features[cls.populationFeature]
-        cls.getSingleFeatureForStudy()
+
 
 
 
