@@ -146,12 +146,12 @@ if __name__ == '__main__':
     print "Rand Index:"
     randIdxSimulation('house-price-naive-sampler',n_sim=100)
     randIdxSimulation('house-price-softmax-sampler',n_sim=100)
-    randIdxSimulation('house-price-q-learning-sampler', n_sim=10)
+    randIdxSimulation('house-price-q-learning-sampler', n_sim=100)
     print "------------"
     print "Simulation Summaries:"
     getSimulationSummaryStats('house-price-naive-sampler',n_sim=100)
     getSimulationSummaryStats('house-price-softmax-sampler', n_sim=100)
-    getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=46)
+    getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
 
 
 
