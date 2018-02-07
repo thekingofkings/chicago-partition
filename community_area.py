@@ -160,26 +160,36 @@ class CommunityArea:
             color_map = dict(zip(plot_measure.index,col_gradient))
 
             for k, t in CAs.items():
-                ax.add_patch(PolygonPatch(t.polygon, alpha=0.85, fc=(1, color_map[k], 0)))
+                if t.id in [47,49,50]:
+                    lw = .75
+                    ca_id = t.id
+                else:
+                    lw = 0
+                    ca_id = ''
+
+                ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
+                                          fc=(1, color_map[k], 0),
+                                          edgecolor='black',
+                                          linewidth=lw))
 
                 if labels:
+
                     # Using plot_measure, label each community with its ID (t.id),
                     # and value (plot_measure.ix[k]) at the centroid
                     plot_measure_k = round(plot_measure.ix[k],4)
-                    ax.text(t.polygon.centroid.x,
-                               t.polygon.centroid.y,
-                               (int(t.id), plot_measure_k),
+                    ax.text(t.polygon.centroid.x,t.polygon.centroid.y,
+                               ca_id,
                                horizontalalignment='center',
-                               verticalalignment='center', fontsize=8)
+                               verticalalignment='center', fontsize=14)
         else:
 
             for k, t in CAs.items():
-                ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green', lw=1.5))
+                ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc='green', lw=1.5,edgecolor='black'))
 
                 if labels:
                     # Label plot with community ids at each respective centroid
                     ax.text(t.polygon.centroid.x,
-                               t.polygon.centroid.y,
+                            t.polygon.centroid.y,
                                 int(t.id),
                                horizontalalignment='center',
                                verticalalignment='center', fontsize=8)
@@ -193,7 +203,7 @@ class CommunityArea:
         elif title == '':
             pass
         else:
-            plt.title(title)
+            plt.title(title,fontsize = 20)
         plt.tight_layout()
         plt.savefig("plots/" + fname)
         plt.close()
