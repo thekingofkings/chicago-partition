@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from feature_utils import retrieve_summarized_income_features
+import pylab as P
 
 
 class CommunityArea:
@@ -123,7 +124,16 @@ class CommunityArea:
 
         
     @classmethod
-    def visualizeCAs(cls, iter_cnt=None, CAs=None, fname="CAs.png",plot_measure=None,labels=False,title=None):
+    def visualizeCAs(cls,
+                     iter_cnt=None,
+                     CAs=None,
+                     fname="CAs.png",
+                     plot_measure=None,
+                     labels=False,
+                     title=None,
+                     case_study=False,
+                     comm_to_plot = None,
+                     jitter_labels = False):
         """
         Class method to plot community boundaries. Arguments available for plotting a continuous measure over the
         community areas
@@ -147,7 +157,7 @@ class CommunityArea:
             iter_cnt = "completed"
 
         from descartes import PolygonPatch
-        f = plt.figure(figsize=(12,12))
+        f = plt.figure(figsize=(8,8))
         ax = f.gca()
 
 
@@ -159,28 +169,51 @@ class CommunityArea:
             # Create color map (dict). Keys: Community ID - Values: Green values (in RGB) in [0,1] interval
             color_map = dict(zip(plot_measure.index,col_gradient))
 
-            for k, t in CAs.items():
-                if t.id in [47,49,50]:
-                    lw = .75
-                    ca_id = t.id
-                else:
-                    lw = 0
-                    ca_id = ''
+            if case_study:
+                for k, t in CAs.items():
+                    if t.id in comm_to_plot:
+                        lw = .75
+                        ca_id = t.id
+                    else:
+                        lw = 0
+                        ca_id = ''
 
-                ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
-                                          fc=(1, color_map[k], 0),
-                                          edgecolor='black',
-                                          linewidth=lw))
+                    if ca_id == comm_to_plot[0]:
+                        P.arrow(-87.6395, 41.661, 0.02, 0.02, fc="k", ec="k",
+                                head_width=0.005, head_length=0.01)
 
-                if labels:
+                    ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
+                                              fc=(1, color_map[k], 0),
+                                              edgecolor='black',
+                                              linewidth=lw))
 
-                    # Using plot_measure, label each community with its ID (t.id),
-                    # and value (plot_measure.ix[k]) at the centroid
-                    plot_measure_k = round(plot_measure.ix[k],4)
-                    ax.text(t.polygon.centroid.x,t.polygon.centroid.y,
-                               ca_id,
-                               horizontalalignment='center',
-                               verticalalignment='center', fontsize=14)
+                    if labels:
+                        if jitter_labels:
+                            x = t.polygon.centroid.x + np.random.uniform(0,.01)
+                            y = t.polygon.centroid.y + np.random.uniform(0,.01)
+                        else:
+                            x = t.polygon.centroid.x
+                            y = t.polygon.centroid.y
+
+                        ax.text(x,y,
+                                ca_id,
+                                horizontalalignment='center',
+                                verticalalignment='center', fontsize=18)
+
+            else:
+                for k, t in CAs.items():
+                    ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
+                                              fc=(1, color_map[k], 0),
+                                              edgecolor='black',
+                                              linewidth=.5))
+
+
+                    if labels:
+                        ax.text(t.polygon.centroid.x,t.polygon.centroid.y,
+                                   t.id,
+                                   horizontalalignment='center',
+                                   verticalalignment='center', fontsize=18)
+
         else:
 
             for k, t in CAs.items():
@@ -192,7 +225,7 @@ class CommunityArea:
                             t.polygon.centroid.y,
                                 int(t.id),
                                horizontalalignment='center',
-                               verticalalignment='center', fontsize=8)
+                               verticalalignment='center', fontsize=12)
 
 
         ax.axis("scaled")

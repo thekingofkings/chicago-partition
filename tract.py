@@ -84,7 +84,7 @@ class Tract:
         return tracts
 
     @classmethod
-    def visualizeTracts(cls, tractIDs=None, tractColors=None, fsize=(16,16), fname="tracts.png"):
+    def visualizeTracts(cls, tractIDs=None, tractColors=None, fsize=(16,16), fname="tracts.png",labels=False):
         tracts = {}
         if tractIDs == None:
             tracts = cls.tracts
@@ -99,6 +99,13 @@ class Tract:
         ax = f.gca()
         for k, t in tracts.items():
             ax.add_patch(PolygonPatch(t.polygon, alpha=0.5, fc=tractColors[k]))
+            if labels:
+                ax.text(t.polygon.centroid.x,
+                        t.polygon.centroid.y,
+                        int(t.id),
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        fontsize=8)
         ax.axis("scaled")
         ax.axis("off")
         plt.tight_layout()
