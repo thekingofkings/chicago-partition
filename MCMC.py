@@ -458,7 +458,6 @@ def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
 
 
     initialize(project_name, targetName, lmbda, f_sd, Tt)
-
     mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'))
     plotMcmcDiagnostics(iter_cnt=None,
@@ -518,7 +517,6 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
     initialize(project_name, targetName, lmbda, f_sd, Tt)
-
     mcmcSamplerSoftmax(project_name,targetName=targetName)
     mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
 
@@ -541,9 +539,9 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 
 if __name__ == '__main__':
-    MCMC_softmax_proposal('house-price-softmax',
-               targetName='train_average_house_price',
-               lmbda=0.005, f_sd=3, Tt=0.1)
+#    MCMC_softmax_proposal('crime-softmax',
+#               targetName='total',
+#               lmbda=0.005, f_sd=3, Tt=0.1)
     naive_MCMC('house-price-naive',
                targetName='train_average_house_price',
                lmbda=0.005, f_sd=3, Tt=0.1)
