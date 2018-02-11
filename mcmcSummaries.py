@@ -9,18 +9,22 @@ from pandas import Series
 def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda=0.75,fname='mcmc-diagnostics'):
     #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
-
     if iter_cnt is None:
         iter_cnt = "completed"
 
     f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
-    axarr[0].plot(mae_index, np.array(error_array))
-    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
-    axarr[1].plot(mae_index, np.array(std_array))
-    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
-    axarr[2].plot(mae_index, f_array)
-    axarr[2].set_title('f - lambda = {}'.format(lmbda))
+    axarr[0].plot(mae_index, np.array(error_array), lw=3)
+    axarr[0].set_title('(a) Mean Absolute Error -- Iterators: {}'.format(iter_cnt), fontsize=26)
+    axarr[0].tick_params(labelsize=22)
+    axarr[1].plot(mae_index, np.array(std_array), lw=3)
+    axarr[1].set_title('(b) Standard deviation of population', fontsize=26)
+    axarr[1].tick_params(labelsize=22)
+    axarr[2].plot(mae_index, f_array, lw=3)
+    axarr[2].set_title('(c) Objective function -- lambda: {}'.format(lmbda), fontsize=26)
+    axarr[2].tick_params(labelsize=22)
+    axarr[2].set_xlabel("Number of iterations", fontsize=26)
 
+    plt.tight_layout()
     plt.savefig("plots/" + fname)
     plt.close()
     plt.clf()
@@ -126,6 +130,17 @@ def randIdxSimulation(project_name1, project_name2=None,n_sim=10):
     sd_rand = np.round(np.std(rand_scores),4)
     print "{:s} - Mean Adjusted Rand Index {:.4f} ({:.2f})".format(project_name1,mean_rand,sd_rand)
     return mean_rand, sd_rand
+
+
+
+
+def fig_convergence_study():
+    """
+    Load convergence study data and plot the curves in the same figure.
+    """
+    import pickle
+    [q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F] = pickle.load(open('convergence-study.pickle'))
+    return q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F
 
 
 
