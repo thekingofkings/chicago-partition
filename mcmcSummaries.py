@@ -133,6 +133,17 @@ def randIdxSimulation(project_name1, project_name2=None,n_sim=10):
 
 
 
+
+def fig_convergence_study():
+    """
+    Load convergence study data and plot the curves in the same figure.
+    """
+    import pickle
+    [q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F] = pickle.load(open('convergence-study.pickle'))
+    return q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F
+
+
+
 if __name__ == '__main__':
     print "----TASK: Crime Prediction----\n"
     print "Rand Index:"
