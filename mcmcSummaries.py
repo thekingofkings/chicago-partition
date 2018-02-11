@@ -134,17 +134,33 @@ def randIdxSimulation(project_name1, project_name2=None,n_sim=10):
 
 
 
-def fig_convergence_study():
+def fig_convergence_study(fname='convergence-study.pdf'):
     """
     Load convergence study data and plot the curves in the same figure.
     """
     import pickle
     [q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F] = pickle.load(open('convergence-study.pickle'))
-    return q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F
+
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(naive_idx, naive_F, lw=3,label='Naive',ls='-.')
+    plt.plot(softmax_idx, softmax_F, lw=3, ls='--', color='red',label='Softmax')
+    plt.plot(q_idx, q_F, lw=3, ls='-', color='green',label='DQN')
+    plt.xlabel("Number of Iterations",fontsize=18)
+    plt.ylabel("Objective Function Value (log)",fontsize=18)
+    plt.legend(loc='best')
+    plt.tick_params(labelsize=14)
+
+
+    plt.tight_layout()
+    plt.savefig("plots/" + fname )
+    plt.close()
+    plt.clf()
+
 
 
 
 if __name__ == '__main__':
+
     print "----TASK: Crime Prediction----\n"
     print "Rand Index:"
     print "-----------"
@@ -167,6 +183,11 @@ if __name__ == '__main__':
     getSimulationSummaryStats('house-price-naive-sampler',n_sim=100)
     getSimulationSummaryStats('house-price-softmax-sampler', n_sim=100)
     getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
+
+    # Create plot of convergence diagnostics of all three methods
+    fig_convergence_study()
+
+
 
 
 
