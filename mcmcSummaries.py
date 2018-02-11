@@ -141,14 +141,14 @@ def fig_convergence_study(fname='convergence-study.pdf'):
     import pickle
     [q_idx, q_F, softmax_idx, softmax_F, naive_idx, naive_F] = pickle.load(open('convergence-study.pickle'))
 
-    fig = plt.figure(figsize=(10,6))
+    fig = plt.figure(figsize=(8,6))
     plt.plot(naive_idx, naive_F, lw=3,label='Naive',ls='-.')
     plt.plot(softmax_idx, softmax_F, lw=3, ls='--', color='red',label='Softmax')
     plt.plot(q_idx, q_F, lw=3, ls='-', color='green',label='DQN')
-    plt.xlabel("Number of Iterations",fontsize=18)
-    plt.ylabel("Objective Function Value (log)",fontsize=18)
-    plt.legend(loc='best')
-    plt.tick_params(labelsize=14)
+    plt.xlabel("Number of Iterations",fontsize=24)
+    plt.ylabel("Objective Function Value (log)",fontsize=24)
+    plt.legend(loc='best', fontsize=22)
+    plt.tick_params(labelsize=20)
 
 
     plt.tight_layout()
@@ -161,28 +161,28 @@ def fig_convergence_study(fname='convergence-study.pdf'):
 
 if __name__ == '__main__':
 
-    print "----TASK: Crime Prediction----\n"
-    print "Rand Index:"
-    print "-----------"
-    randIdxSimulation('naive-sampler',n_sim=10)
-    randIdxSimulation('softmax-sampler',n_sim=10)
-    randIdxSimulation('q-learning', n_sim=10)
-    print "------------"
-    print "Simulation Summaries:"
-    getSimulationSummaryStats('naive-sampler',n_sim=10)
-    getSimulationSummaryStats('softmax-sampler', n_sim=10)
-    getSimulationSummaryStats('q-learning', n_sim=10)
-    print ""
-    print "----TASK: House Price Prediction----\n"
-    print "Rand Index:"
-    randIdxSimulation('house-price-naive-sampler',n_sim=100)
-    randIdxSimulation('house-price-softmax-sampler',n_sim=100)
-    randIdxSimulation('house-price-q-learning-sampler', n_sim=100)
-    print "------------"
-    print "Simulation Summaries:"
-    getSimulationSummaryStats('house-price-naive-sampler',n_sim=100)
-    getSimulationSummaryStats('house-price-softmax-sampler', n_sim=100)
-    getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
+#    print "----TASK: Crime Prediction----\n"
+#    print "Rand Index:"
+#    print "-----------"
+#    randIdxSimulation('naive-sampler',n_sim=10)
+#    randIdxSimulation('softmax-sampler',n_sim=10)
+#    randIdxSimulation('q-learning', n_sim=10)
+#    print "------------"
+#    print "Simulation Summaries:"
+#    getSimulationSummaryStats('naive-sampler',n_sim=10)
+#    getSimulationSummaryStats('softmax-sampler', n_sim=10)
+#    getSimulationSummaryStats('q-learning', n_sim=10)
+#    print ""
+#    print "----TASK: House Price Prediction----\n"
+#    print "Rand Index:"
+#    randIdxSimulation('house-price-naive-sampler',n_sim=100)
+#    randIdxSimulation('house-price-softmax-sampler',n_sim=100)
+#    randIdxSimulation('house-price-q-learning-sampler', n_sim=100)
+#    print "------------"
+#    print "Simulation Summaries:"
+#    getSimulationSummaryStats('house-price-naive-sampler',n_sim=100)
+#    getSimulationSummaryStats('house-price-softmax-sampler', n_sim=100)
+#    getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
 
     # Create plot of convergence diagnostics of all three methods
     fig_convergence_study()
