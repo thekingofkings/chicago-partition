@@ -174,31 +174,26 @@ class CommunityArea:
                     if t.id in comm_to_plot:
                         lw = .75
                         ca_id = t.id
+                        ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
+                                                  fc=(1, color_map[k], 0),
+                                                  edgecolor='black',
+                                                  linewidth=lw))
+                        if labels:
+                            if jitter_labels:
+                                x = t.polygon.centroid.x + np.random.uniform(0,.01)
+                                y = t.polygon.centroid.y + np.random.uniform(0,.01)
+                            else:
+                                x = t.polygon.centroid.x
+                                y = t.polygon.centroid.y
+
+                            ax.text(x,y,
+                                    ca_id,
+                                    horizontalalignment='center',
+                                    verticalalignment='center', fontsize=48)
+
                     else:
-                        lw = 0
-                        ca_id = ''
+                        pass
 
-                    if ca_id == comm_to_plot[0]:
-                        P.arrow(-87.6395, 41.661, 0.02, 0.02, fc="k", ec="k",
-                                head_width=0.005, head_length=0.01)
-
-                    ax.add_patch(PolygonPatch(t.polygon, alpha=0.85,
-                                              fc=(1, color_map[k], 0),
-                                              edgecolor='black',
-                                              linewidth=lw))
-
-                    if labels:
-                        if jitter_labels:
-                            x = t.polygon.centroid.x + np.random.uniform(0,.01)
-                            y = t.polygon.centroid.y + np.random.uniform(0,.01)
-                        else:
-                            x = t.polygon.centroid.x
-                            y = t.polygon.centroid.y
-
-                        ax.text(x,y,
-                                ca_id,
-                                horizontalalignment='center',
-                                verticalalignment='center', fontsize=18)
 
             else:
                 for k, t in CAs.items():

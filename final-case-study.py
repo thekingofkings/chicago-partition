@@ -9,6 +9,7 @@ project_name = 'case-study-crime'
 targetName = 'total'
 singleFeatureName = 'poverty_index'
 finalPartitionFile = 'q-learning-v10-final-partition.txt'
+arrow = (-87.6395, 41.661, 0.02, 0.02)
 
 cas = [47,49,50]
 
@@ -26,14 +27,16 @@ CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,singleFe
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = [47,49,50])
+                           comm_to_plot = [47,49,50],
+                           arrow=arrow)
 
 CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,targetName),
                            plot_measure=targetInit,
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = [47,49,50])
+                           comm_to_plot = [47,49,50],
+                           arrow=arrow)
 
 
 
@@ -52,7 +55,8 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,singleFea
                            title='',
                            case_study=True,
                            comm_to_plot=[47, 49, 50],
-                           jitter_labels=True)
+                           jitter_labels=True,
+                           arrow=arrow)
 
 
 
@@ -62,26 +66,18 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,targetNam
                            title='',
                            case_study=True,
                            comm_to_plot=[47, 49, 50],
-                           jitter_labels=True)
+                           jitter_labels=True,
+                           arrow=arrow)
 
 
 
 
 
-featureBefore = singleFeatureForStudyInit.ix[cas]
-targetBefore = targetInit.ix[cas]
+## Plot again for paper without heat map
 
-featureAfter = singleFeatureForStudyFinal.ix[cas]
-targetAfter = targetFinal.ix[cas]
-
-corr_before = np.corrcoef(x=featureBefore,y=targetBefore)
-corr_after = np.corrcoef(x=featureAfter,y=targetAfter)
-
-
-print "Correlation Before: "
-print corr_before
-print "Correlation After: {}"
-print corr_after
+CommunityArea.visualizeCAs(fname='q-learning-v10-CAs.pdf',
+                           labels=False,
+                           title='')
 
 
 
@@ -96,9 +92,12 @@ import numpy as np
 project_name = 'case-study-house-price'
 targetName = 'train_average_house_price'
 singleFeatureName = 'poverty_index'
-finalPartitionFile = 'q-learning-v10-final-partition.txt'
+finalPartitionFile = 'q-learning-v1-final-partition.txt'
 
-cas = [23,26]
+ex_house = None
+
+
+cas = [3,5,6,7]
 
 
 # Initialize MCMC: learn regression using administrative boundaries
@@ -109,29 +108,32 @@ singleFeatureForStudyInit = CommunityArea.features[singleFeatureName].copy()
 targetInit = CommunityArea.features[targetName].copy()
 
 # Plot x,y by community area
+
+
+
 CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,singleFeatureName),
                            plot_measure=singleFeatureForStudyInit,
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = cas)
+                           comm_to_plot = cas,
+                           arrow=None)
 
 CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,targetName),
                            plot_measure=targetInit,
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = cas)
+                           comm_to_plot = cas,
+                           arrow=None)
 
-for ca_i in cas:
-    example_ca = CommunityArea.CAs[ca_i]
-    print ca_i
-    for t_id in example_ca.tracts.keys():
-        t = example_ca.tracts[t_id]
-        centroid = (t.centroid[1],t.centroid[0])
-        print t_id, centroid
-
-    Tract.visualizeTracts(tractIDs=example_ca.tracts.keys(),fname='plots/{}/before-tracts-{}.pdf'.format(project_name,ca_i),labels=True)
+CommunityArea.visualizeCAs(fname='{}/before-{}-all.pdf'.format(project_name,targetName),
+                           plot_measure=targetInit,
+                           labels=False,
+                           title='',
+                           case_study=False,
+                           comm_to_plot = None,
+                           arrow=None)
 
 
 
@@ -151,7 +153,8 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,singleFea
                            title='',
                            case_study=True,
                            comm_to_plot=cas,
-                           jitter_labels=True)
+                           jitter_labels=False,
+                           arrow=ex_house)
 
 
 
@@ -161,30 +164,6 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,targetNam
                            title='',
                            case_study=True,
                            comm_to_plot=cas,
-                           jitter_labels=True)
-
-
-
-
-
-featureBefore = singleFeatureForStudyInit.ix[cas]
-targetBefore = targetInit.ix[cas]
-
-featureAfter = singleFeatureForStudyFinal.ix[cas]
-targetAfter = targetFinal.ix[cas]
-
-corr_before = np.corrcoef(x=featureBefore,y=targetBefore)
-corr_after = np.corrcoef(x=featureAfter,y=targetAfter)
-
-
-print "Correlation Before: "
-print corr_before
-print "Correlation After: {}"
-print corr_after
-
-
-
-
-
-
-
+                           jitter_labels=False,
+                           arrow=ex_house)
+racts(tractIDs=tracts,fname='{}/tracts-{}-after-{}.pdf'.format(c,project_name,targetName))
