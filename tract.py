@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, box
 import shapefile
 from feature_utils import *
-from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralClustering
+from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralClustering, spectral_clustering
 import numpy as np
 
 
@@ -259,6 +259,35 @@ class Tract:
         tract_to_CA_dict = dict(zip(tract_ids,labels))
         cls.updateCA(tract_to_CA_dict)
 
+    @classmethod
+    def kMeansClustering(cls):
+        """
+        cluster tracts using kmeans clustering
+        :return:
+        """
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+
+        km = KMeans(n_clusters=CA_count,init='k-means++')
+        km.fit(node_value)
+        labels = km.labels_
+        tract_to_CA_dict = dict(zip(tract_ids, labels))
+        cls.updateCA(tract_to_CA_dict)
+        return tract_to_CA_dict
+
+    @classmethod
+    def spectralClustering(cls,assign_labels='discretize'):
+        """
+        cluster tracts using spectral clustering
+        :return:
+        """
+
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+
+        labels = spectral_clustering(connectivity, n_clusters=CA_count,
+                                     assign_labels=assign_labels, random_state=None)
+        tract_to_CA_dict = dict(zip(tract_ids, labels))
+        cls.updateCA(tract_to_CA_dict)
+        return tract_to_CA_dict
 
 
     @classmethod
@@ -343,6 +372,10 @@ if __name__ == '__main__':
     #Tract.visualizeTractsAdjacency)
     trts0_features = Tract.generateFeatures(crimeYear=2010)
 
-    # tract_to_CA_dict = Tract.agglomerativeClustering()
+    #tract_to_CA_dict = Tract.agglomerativeClustering()
     # Tract.updateCA(tract_to_CA_dict)
     # trts1 = Tract.tracts
+
+
+    #tract_to_ca_dict = Tract.kMeansClustering()
+    tract_to_ca_dict = Tract.spectralClustering()

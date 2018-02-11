@@ -133,7 +133,8 @@ class CommunityArea:
                      title=None,
                      case_study=False,
                      comm_to_plot = None,
-                     jitter_labels = False):
+                     jitter_labels = False,
+                     marker = None):
         """
         Class method to plot community boundaries. Arguments available for plotting a continuous measure over the
         community areas
@@ -149,6 +150,7 @@ class CommunityArea:
                                 centroid of each community area
         :param title: (str) Title for plot saved .png. If title = '', then no title, If title is None, then use default
                             title that prints iteration count
+         :param marker: (tuple) GPS coordinates to mark on map w/ star
         :return: 
         """
         if CAs == None:
@@ -194,6 +196,12 @@ class CommunityArea:
                     else:
                         pass
 
+                if marker is not None:
+                    plt.plot(marker[0], marker[1],marker = '*', color='green',ms=40)
+
+
+
+
 
             else:
                 for k, t in CAs.items():
@@ -233,6 +241,7 @@ class CommunityArea:
         else:
             plt.title(title,fontsize = 20)
         plt.tight_layout()
+        #plt.show()
         plt.savefig("plots/" + fname)
         plt.close()
         plt.clf()
@@ -255,11 +264,29 @@ def fig_clustering_baseline(keepBest=True):
     Tract.createAllTracts()
     Tract.generateFeatures(2011)
 
-    Tract.agglomerativeClustering()
+    print "-------Kmeans Clustering-------"
+    Tract.kMeansClustering()
     CommunityArea.createAllCAs(Tract.tracts)
     print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
     print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+    CommunityArea.visualizeCAs(fname="kmeans_CAs.pdf", title='')
+
+    Tract.agglomerativeClustering()
+    CommunityArea.createAllCAs(Tract.tracts)
+    print "-------Agglomerative Clustering-------"
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
     CommunityArea.visualizeCAs(fname="agg_CAs.pdf", title='')
+
+    Tract.spectralClustering()
+    CommunityArea.createAllCAs(Tract.tracts)
+    print "-------Spectral Clustering-------"
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'total')
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
+    CommunityArea.visualizeCAs(fname="spectral_CAs.pdf", title='')
+
+
+
 
     if not keepBest:
         Tract.agglomerativeClustering(algorithm="average_cosine")

@@ -8,7 +8,7 @@ import numpy as np
 project_name = 'case-study-crime'
 targetName = 'total'
 singleFeatureName = 'poverty_index'
-finalPartitionFile = 'q-learning-v10-final-partition.txt'
+finalPartitionFile = 'q-learning-v5-final-partition.txt'
 arrow = (-87.6395, 41.661, 0.02, 0.02)
 
 cas = [47,49,50]
@@ -27,16 +27,20 @@ CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,singleFe
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = [47,49,50],
-                           arrow=arrow)
+                           comm_to_plot = [47,49,50])
 
 CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,targetName),
                            plot_measure=targetInit,
                            labels=True,
                            title='',
                            case_study=True,
-                           comm_to_plot = [47,49,50],
-                           arrow=arrow)
+                           comm_to_plot = [47,49,50])
+CommunityArea.visualizeCAs(fname='{}/before-{}-all.pdf'.format(project_name,targetName),
+                           plot_measure=targetInit,
+                           labels=False,
+                           title='',
+                           case_study=False,
+                           comm_to_plot = None)
 
 
 
@@ -55,8 +59,7 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,singleFea
                            title='',
                            case_study=True,
                            comm_to_plot=[47, 49, 50],
-                           jitter_labels=True,
-                           arrow=arrow)
+                           jitter_labels=False)
 
 
 
@@ -66,8 +69,9 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,targetNam
                            title='',
                            case_study=True,
                            comm_to_plot=[47, 49, 50],
-                           jitter_labels=True,
-                           arrow=arrow)
+                           jitter_labels=False)
+
+
 
 
 
@@ -75,7 +79,7 @@ CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,targetNam
 
 ## Plot again for paper without heat map
 
-CommunityArea.visualizeCAs(fname='q-learning-v10-CAs.pdf',
+CommunityArea.visualizeCAs(fname='{}-q-learning-v10-CAs.pdf'.format(project_name),
                            labels=False,
                            title='')
 
@@ -94,8 +98,7 @@ targetName = 'train_average_house_price'
 singleFeatureName = 'poverty_index'
 finalPartitionFile = 'q-learning-v1-final-partition.txt'
 
-ex_house = None
-
+harbor = (-87.6268, 41.9399)
 
 cas = [3,5,6,7]
 
@@ -111,29 +114,29 @@ targetInit = CommunityArea.features[targetName].copy()
 
 
 
-CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,singleFeatureName),
+CommunityArea.visualizeCAs(fname='{}/{}-before-{}.pdf'.format(project_name,project_name,targetName),
                            plot_measure=singleFeatureForStudyInit,
                            labels=True,
                            title='',
                            case_study=True,
                            comm_to_plot = cas,
-                           arrow=None)
+                           marker=harbor)
 
-CommunityArea.visualizeCAs(fname='{}/before-{}.pdf'.format(project_name,targetName),
+CommunityArea.visualizeCAs(fname='{}/{}-before-{}.pdf'.format(project_name,project_name,targetName),
                            plot_measure=targetInit,
                            labels=True,
                            title='',
                            case_study=True,
                            comm_to_plot = cas,
-                           arrow=None)
+                           marker=harbor)
 
-CommunityArea.visualizeCAs(fname='{}/before-{}-all.pdf'.format(project_name,targetName),
+CommunityArea.visualizeCAs(fname='{}/{}-before-{}-all.pdf'.format(project_name,project_name,targetName),
                            plot_measure=targetInit,
                            labels=False,
                            title='',
                            case_study=False,
                            comm_to_plot = None,
-                           arrow=None)
+                           marker=harbor)
 
 
 
@@ -147,23 +150,27 @@ CommunityArea.createAllCAs(Tract.tracts)
 singleFeatureForStudyFinal = CommunityArea.features[singleFeatureName].copy()
 targetFinal = CommunityArea.features[targetName].copy()
 # Visualize x,y
-CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,singleFeatureName),
+CommunityArea.visualizeCAs(fname='{}/{}-after-{}.pdf'.format(project_name,project_name,targetName),
                            plot_measure=singleFeatureForStudyFinal,
                            labels=True,
                            title='',
                            case_study=True,
                            comm_to_plot=cas,
                            jitter_labels=False,
-                           arrow=ex_house)
+                           marker=harbor)
 
 
 
-CommunityArea.visualizeCAs(fname='{}/after-{}.pdf'.format(project_name,targetName),
+CommunityArea.visualizeCAs(fname='{}/{}-after-{}.pdf'.format(project_name,project_name,targetName),
                            plot_measure=targetFinal,
                            labels=True,
                            title='',
                            case_study=True,
                            comm_to_plot=cas,
                            jitter_labels=False,
-                           arrow=ex_house)
-racts(tractIDs=tracts,fname='{}/tracts-{}-after-{}.pdf'.format(c,project_name,targetName))
+                           marker=harbor)
+
+
+CommunityArea.visualizeCAs(fname='{}-q-learning-v10-CAs.pdf'.format(project_name),
+                           labels=False,
+                           title='')
