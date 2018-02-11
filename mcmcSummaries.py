@@ -9,18 +9,22 @@ from pandas import Series
 def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda=0.75,fname='mcmc-diagnostics'):
     #x = range(len(error_array))
     # Two subplots, the axes array is 1-d
-
     if iter_cnt is None:
         iter_cnt = "completed"
 
     f, axarr = plt.subplots(3, sharex=True,figsize=(12,8))
-    axarr[0].plot(mae_index, np.array(error_array))
-    axarr[0].set_title('Mean Absolute Error -- Iterations: {}'.format(iter_cnt))
-    axarr[1].plot(mae_index, np.array(std_array))
-    axarr[1].set_title('Standard Deviation of Community Size (in pop)')
-    axarr[2].plot(mae_index, f_array)
-    axarr[2].set_title('f - lambda = {}'.format(lmbda))
+    axarr[0].plot(mae_index, np.array(error_array), lw=3)
+    axarr[0].set_title('(a) Mean Absolute Error -- Iterators: {}'.format(iter_cnt), fontsize=26)
+    axarr[0].tick_params(labelsize=22)
+    axarr[1].plot(mae_index, np.array(std_array), lw=3)
+    axarr[1].set_title('(b) Standard deviation of population', fontsize=26)
+    axarr[1].tick_params(labelsize=22)
+    axarr[2].plot(mae_index, f_array, lw=3)
+    axarr[2].set_title('(c) Objective function -- lambda: {}'.format(lmbda), fontsize=26)
+    axarr[2].tick_params(labelsize=22)
+    axarr[2].set_xlabel("Number of iterations", fontsize=26)
 
+    plt.tight_layout()
     plt.savefig("plots/" + fname)
     plt.close()
     plt.clf()
