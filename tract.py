@@ -128,6 +128,7 @@ class Tract:
         poi_f.index = sorted(cls.tract_index)
         cls.features = f.join([y, price_f, poi_f])
         cls.featureNames = list(poi_f.columns)
+        cols = list(cls.features.columns)
         return cls.features
 
     @classmethod
@@ -231,12 +232,16 @@ class Tract:
         cls.restorePartition(partition=partition_clean)
 
     @classmethod
-    def agglomerativeClustering(cls, algorithm = "ward"):
+    def agglomerativeClustering(cls, cluster_X=True,cluster_y=False,y=None, algorithm = "ward"):
         '''
         using agglomerative clustering
         :return: tract to CA mapping
         '''
-        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity(income_features=cluster_X,
+                                                                                  target_bool=cluster_y,
+                                                                                  target=y)
+
+
         if algorithm == "ward":
             ward = AgglomerativeClustering(n_clusters=CA_count, linkage="ward",
                                            connectivity=connectivity)
@@ -260,12 +265,14 @@ class Tract:
         cls.updateCA(tract_to_CA_dict)
 
     @classmethod
-    def kMeansClustering(cls):
+    def kMeansClustering(cls,cluster_X=True,cluster_y=False,y=None):
         """
         cluster tracts using kmeans clustering
         :return:
         """
-        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity(income_features=cluster_X,
+                                                                                  target_bool=cluster_y,
+                                                                                  target=y)
 
         km = KMeans(n_clusters=CA_count,init='k-means++')
         km.fit(node_value)
@@ -275,13 +282,15 @@ class Tract:
         return tract_to_CA_dict
 
     @classmethod
-    def spectralClustering(cls,assign_labels='discretize'):
+    def spectralClustering(cls,cluster_X=True,cluster_y=False,y=None,assign_labels='discretize'):
         """
         cluster tracts using spectral clustering
         :return:
         """
 
-        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity()
+        connectivity, node_value, CA_count, tract_ids = cls.constructConnectivity(income_features=cluster_X,
+                                                                                  target_bool=cluster_y,
+                                                                                  target=y)
 
         labels = spectral_clustering(connectivity, n_clusters=CA_count,
                                      assign_labels=assign_labels, random_state=None)
@@ -291,7 +300,7 @@ class Tract:
 
 
     @classmethod
-    def constructConnectivity(cls):
+    def constructConnectivity(cls,income_features=True,target_bool=False,target=None):
         '''
         Construct connectivity matrix for clustering methods
         :return: Adjacency matrix, node value matrix, number of CA_ids,
@@ -305,11 +314,25 @@ class Tract:
         X = []
         CA_ids = []
         tract_ids = []
+
+        node_features = list()
+
+        if income_features:
+            node_features += cls.income_description.keys()
+        if target_bool and target is not None:
+            node_features += [target]
+
+        #TODO: Delete line
+        feature_names_all = list(cls.features.columns)
+
+        target_in_names = target in feature_names_all
+
         for focalKey, focalTract in cls.tracts.items():
             tract_ids.append(focalKey)
             CA_ids.append(focalTract.CA)
         for focalKey, focalTract in cls.tracts.items():
-            X.append(cls.features.loc[focalKey, cls.income_description.keys()])
+            #X.append(cls.features.loc[focalKey, cls.income_description.keys()])
+            X.append(cls.features.loc[focalKey, node_features])
             for neighbor in focalTract.neighbors:
                 I.append(tract_ids.index(focalKey))
                 J.append(tract_ids.index(neighbor.id))
@@ -365,6 +388,7 @@ def compare_tract_shapefiles():
 
 
 
+
 if __name__ == '__main__':
     #t1, t2 = compare_tract_shapefiles()
     trts0 = Tract.createAllTracts()
@@ -379,3 +403,5 @@ if __name__ == '__main__':
 
     #tract_to_ca_dict = Tract.kMeansClustering()
     tract_to_ca_dict = Tract.spectralClustering()
+
+

@@ -47,6 +47,13 @@ def NB_regression_evaluation(df, featureNames, targetName):
 #    standardScaler = preprocessing.StandardScaler()
 #    features = standardScaler.fit_transform(features_raw)
     crimeRate = df[targetName]
+
+    # TODO: Delete line
+    feature_names_all = list(df.columns)
+
+    target_in_names = targetName in feature_names_all
+
+
     for train_idx, test_idx in loo.split(df):
         X_train, y_train = features.iloc[train_idx], crimeRate.iloc[train_idx]
         X_test, y_test = features.iloc[test_idx], crimeRate.iloc[test_idx]
@@ -54,7 +61,7 @@ def NB_regression_evaluation(df, featureNames, targetName):
         model_res = nbmodel.fit()
         y_pred = nbmodel.predict(model_res.params, X_test)
         errors.append(abs(y_pred[0] - y_test.iat[0]))
-    return np.mean(errors), np.std(errors), np.mean(errors)/np.mean(crimeRate)
+    return np.round(np.mean(errors),2), np.round(np.std(errors),2), np.round(np.mean(errors)/np.mean(crimeRate),2)
 
 
 def NB_regression_training(df, featureNames, targetName):

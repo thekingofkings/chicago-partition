@@ -259,6 +259,12 @@ class CommunityArea:
 
 
 def fig_clustering_baseline(keepBest=True):
+    """
+
+    :param keepBest:
+    :param feature_settings:
+    :return:
+    """
     from regression import NB_regression_evaluation
 
     Tract.createAllTracts()
@@ -307,11 +313,61 @@ def fig_clustering_baseline(keepBest=True):
         print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, 'test_average_house_price')
         CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
 
+
+def fig_clustering_baseline2(task,cluster_X=True,cluster_y=False):
+    """
+    A second function to compute baselines using classical clustering techniques (k-means,agglomerative,spectral)
+    This function differs from fig_clustering_baseline() in that we can now specify on which dimensions we wish to cluster.
+    More specifically, we can cluster only X (the feature matrix) only, y (the target variable) only, or on both X AND y.
+
+    ** Note: if both cluster_X and cluster_y are True, then cluster on both X and y..
+
+    :param task: (str) must be either 'crime', or 'house-price' - designates the prediction  task
+    :param cluster_X: (bool) Boolean to cluster on X
+    :param cluster_y: (bool) Boolean to cluster on y
+    :return: None
+    """
+
+    from regression import NB_regression_evaluation
+
+    Tract.createAllTracts()
+    Tract.generateFeatures(2011)
+
+    tract_task_y_map = {'house-price':'test_price', 'crime':'total'}
+    ca_task_y_map = {'house-price':'test_average_house_price', 'crime':'total'}
+    y_tract = tract_task_y_map[task]
+    y_ca = ca_task_y_map[task]
+
+
+    print "-------Kmeans Clustering-------"
+    print "--> {} error:".format(task)
+    Tract.kMeansClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
+    CommunityArea.createAllCAs(Tract.tracts)
+    CommunityArea.visualizeCAs(fname="kmeans_CA_{}.pdf".format(task), title='')
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+
+    print "-------Agglomerative Clustering-------"
+    Tract.agglomerativeClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
+    CommunityArea.createAllCAs(Tract.tracts)
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+    CommunityArea.visualizeCAs(fname="agg_CA_{}.pdf".format(task), title='')
+
+    print "-------Spectral Clustering-------"
+    Tract.spectralClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
+    CommunityArea.createAllCAs(Tract.tracts)
+    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames,y_ca)
+    CommunityArea.visualizeCAs(fname="spectral_CA_{}.pdf".format(task), title='')
+
+
+
 if __name__ == '__main__':
 #    Tract.createAllTracts()
 #    CommunityArea.createAllCAs(Tract.tracts)
 #    CommunityArea.visualizeCAs()
 
-    fig_clustering_baseline()
+    fig_clustering_baseline2(cluster_X=True,cluster_y=False,task = 'crime')
+
+
+
 
 
