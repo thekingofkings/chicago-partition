@@ -314,7 +314,8 @@ def fig_clustering_baseline(keepBest=True):
         CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
 
 
-def fig_clustering_baseline2(task,cluster_X=True,cluster_y=False):
+
+def fig_clustering_baseline2(task, n_sim,cluster_X=True, cluster_y=False):
     """
     A second function to compute baselines using classical clustering techniques (k-means,agglomerative,spectral)
     This function differs from fig_clustering_baseline() in that we can now specify on which dimensions we wish to cluster.
@@ -333,39 +334,64 @@ def fig_clustering_baseline2(task,cluster_X=True,cluster_y=False):
     Tract.createAllTracts()
     Tract.generateFeatures(2011)
 
-    tract_task_y_map = {'house-price':'test_price', 'crime':'total'}
-    ca_task_y_map = {'house-price':'test_average_house_price', 'crime':'total'}
+    tract_task_y_map = {'house-price': 'test_price', 'crime': 'total'}
+    ca_task_y_map = {'house-price': 'test_average_house_price', 'crime': 'total'}
     y_tract = tract_task_y_map[task]
     y_ca = ca_task_y_map[task]
 
+    results = np.zeros(shape=(n_sim, 3, 3))
 
-    print "-------Kmeans Clustering-------"
-    print "--> {} error:".format(task)
-    Tract.kMeansClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="kmeans_CA_{}.pdf".format(task), title='')
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+    for i in range(n_sim):
+        print "------ ITERATION {} -------  ".format(i)
+        #fig_clustering_baseline2(cluster_X=True, cluster_y=True, task='house-price')
 
-    print "-------Agglomerative Clustering-------"
-    Tract.agglomerativeClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
-    CommunityArea.visualizeCAs(fname="agg_CA_{}.pdf".format(task), title='')
 
-    print "-------Spectral Clustering-------"
-    Tract.spectralClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames,y_ca)
-    CommunityArea.visualizeCAs(fname="spectral_CA_{}.pdf".format(task), title='')
+        print "-------Kmeans Clustering-------"
+        print "--> {} error:".format(task)
+        Tract.kMeansClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        CommunityArea.visualizeCAs(fname="kmeans_CA_{}.pdf".format(task), title='')
+        k_means_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        print(k_means_reg)
 
+        print "-------Agglomerative Clustering-------"
+        Tract.agglomerativeClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        agg_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        CommunityArea.visualizeCAs(fname="agg_CA_{}.pdf".format(task), title='')
+        print(agg_reg)
+
+        print "-------Spectral Clustering-------"
+        Tract.spectralClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        spectral_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        CommunityArea.visualizeCAs(fname="spectral_CA_{}.pdf".format(task), title='')
+        print(spectral_reg)
+        print("\n")
+
+
+        results[i, 0, :] = k_means_reg
+        results[i, 1, :] = agg_reg
+        results[i, 2, :] = spectral_reg
+
+
+    means = np.mean(results,axis=0)
+    std = np.std(results,axis=0)
+
+    means = pd.DataFrame(means, index=['kmeans', 'agglomerative', 'spectral'], columns=['mae', 'rmse', 'mre'])
+    std =  pd.DataFrame(std, index=['kmeans', 'agglomerative', 'spectral'], columns=['mae', 'rmse', 'mre'])
+    return results, means, std
 
 
 if __name__ == '__main__':
-#    Tract.createAllTracts()
-#    CommunityArea.createAllCAs(Tract.tracts)
-#    CommunityArea.visualizeCAs()
+    #    Tract.createAllTracts()
+    #    CommunityArea.createAllCAs(Tract.tracts)
+    #    CommunityArea.visualizeCAs()
+    task = 'house-price'
+    results, means, std = fig_clustering_baseline2(task=task, n_sim=10, cluster_X=False, cluster_y=True)
+    means.to_csv("output/baselines-mean-results-{}-y-only.csv".format(task))
+    std.to_csv("output/baselines-std-results-{}-y-only.csv".format(task))
 
-    fig_clustering_baseline2(cluster_X=True,cluster_y=False,task = 'crime')
 
 
 
