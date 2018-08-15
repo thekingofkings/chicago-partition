@@ -35,7 +35,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
 
-    M = 100
+    M = 50
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
@@ -314,7 +314,10 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
 
 if __name__ == '__main__':
-    for i in range(100):
+    for i in range(10):
+        q_learning('crime-q-learning-sampler-v{}'.format(i+1),
+                   targetName='total',
+                   lmbd=0.005, f_sd=5, Tt=0.1)
         q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.005, f_sd=3, Tt=0.1)
+                   lmbd=0.005, f_sd=5, Tt=0.1)

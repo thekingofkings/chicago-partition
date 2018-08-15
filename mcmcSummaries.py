@@ -30,11 +30,12 @@ def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda=0
     plt.clf()
 
 
-def writeSimulationOutput(project_name,error,n_iter_conv,accept_rate):
+def writeSimulationOutput(project_name,mae,rmse,n_iter_conv,accept_rate):
 
     fname = "output/{}-final-output.txt".format(project_name)
     f = open(fname,'w')
-    f.write("error: {:.4f}\n".format(error))
+    f.write("mae: {:.4f}\n".format(mae))
+    f.write("rmse: {:.4f}\n".format(rmse))
     f.write("iterations: {}\n".format(n_iter_conv))
     f.write("acceptance rate: {:.4f}\n".format(accept_rate))
     f.close()
@@ -162,27 +163,18 @@ def fig_convergence_study(fname='convergence-study.pdf'):
 if __name__ == '__main__':
 
     print "----TASK: Crime Prediction----\n"
-    #print "Rand Index:"
-    #print "-----------"
-    #randIdxSimulation('naive-sampler',n_sim=10)
-    #randIdxSimulation('softmax-sampler',n_sim=10)
-    #randIdxSimulation('q-learning', n_sim=10)
     print "------------"
     print "Simulation Summaries:"
-    getSimulationSummaryStats('naive-sampler',n_sim=10)
-    getSimulationSummaryStats('softmax-sampler', n_sim=10)
-    getSimulationSummaryStats('q-learning', n_sim=10)
+    getSimulationSummaryStats('crime-naive',n_sim=100)
+    getSimulationSummaryStats('crime-softmax', n_sim=100)
+    #getSimulationSummaryStats('q-learning', n_sim=100)
     print ""
     print "----TASK: House Price Prediction----\n"
-    #print "Rand Index:"
-    #randIdxSimulation('house-price-naive-sampler',n_sim=100)
-    #randIdxSimulation('house-price-softmax-sampler',n_sim=100)
-    #randIdxSimulation('house-price-q-learning-sampler', n_sim=100)
     print "------------"
     print "Simulation Summaries:"
-    getSimulationSummaryStats('house-price-naive-sampler',n_sim=100)
-    getSimulationSummaryStats('house-price-softmax-sampler', n_sim=100) 
-    getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
+    getSimulationSummaryStats('house-price-naive',n_sim=100)
+    getSimulationSummaryStats('house-price-softmax', n_sim=100)
+    #getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=100)
 
     # Create plot of convergence diagnostics of all three methods
     #fig_convergence_study()

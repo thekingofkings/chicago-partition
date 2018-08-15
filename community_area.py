@@ -343,7 +343,11 @@ def fig_clustering_baseline2(task, n_sim,cluster_X=True, cluster_y=False):
 
     for i in range(n_sim):
         print "------ ITERATION {} -------  ".format(i)
-        #fig_clustering_baseline2(cluster_X=True, cluster_y=True, task='house-price')
+
+        print "-------Admin. Boundary-------"
+        CommunityArea.createAllCAs(Tract.tracts)
+        admin_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        print(admin_reg)
 
 
         print "-------Kmeans Clustering-------"
@@ -384,16 +388,7 @@ def fig_clustering_baseline2(task, n_sim,cluster_X=True, cluster_y=False):
 
 
 if __name__ == '__main__':
-    #    Tract.createAllTracts()
-    #    CommunityArea.createAllCAs(Tract.tracts)
-    #    CommunityArea.visualizeCAs()
     task = 'house-price'
     results, means, std = fig_clustering_baseline2(task=task, n_sim=10, cluster_X=False, cluster_y=True)
     means.to_csv("output/baselines-mean-results-{}-y-only.csv".format(task))
     std.to_csv("output/baselines-std-results-{}-y-only.csv".format(task))
-
-
-
-
-
-
