@@ -121,6 +121,47 @@ class CommunityArea:
         cls.population = cls.features[cls.populationFeature]
 
 
+    @classmethod
+    def rand_init_communities(cls, target_m):
+        all_ca = cls.CAs
+        features_ca_dict = cls.features_ca_dict
+        M = len(all_ca)
+        del_ca_list = list()
+
+        while M > target_m:
+            # select random community
+            ca_rand_id = np.random.permutation(all_ca.keys())[0]
+            ca_rand = all_ca[ca_rand_id]
+
+            # get all adjacent communities to selected community
+            adj_ca = set()
+            for tract_id, tract in ca_rand.tracts.items():
+                for neighbor in tract.neighbors:
+                    if neighbor.CA != ca_rand_id:
+                        adj_ca.add(neighbor.CA)
+
+            # select random adjacent community
+            adj_ca = list(adj_ca)
+            new_ca = np.random.permutation(adj_ca)[0]
+            print "Merging community #{} into #{}".format(ca_rand_id, new_ca)
+            # update each tract in selected community area
+            for tract_id, tract in ca_rand.tracts.items():
+                tract.CA = new_ca
+                cls.updateCAFeatures(tract, prv_CAid=ca_rand_id, new_CAid=new_ca)
+
+            # remove selected commununity
+            del all_ca[ca_rand_id]
+            del features_ca_dict[ca_rand_id]
+            del_ca_list.append(ca_rand_id)
+
+            M -= 1
+
+        cls.CAs = all_ca
+        cls.features_ca_dict = features_ca_dict
+        cls.features = cls.features.drop(del_ca_list, axis=0)
+
+
+
 
         
     @classmethod
@@ -392,3 +433,4 @@ if __name__ == '__main__':
     results, means, std = fig_clustering_baseline2(task=task, n_sim=10, cluster_X=False, cluster_y=True)
     means.to_csv("output/baselines-mean-results-{}-y-only.csv".format(task))
     std.to_csv("output/baselines-std-results-{}-y-only.csv".format(task))
+

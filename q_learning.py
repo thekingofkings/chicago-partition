@@ -208,7 +208,6 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                 # calculate f ('energy') of current and proposed states
                 F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbd)
                 gain = 1 / (1 + math.exp(- F_next + F_cur))
-    
                 partitions.append(state)
                 action_tracts.append(Tract.getTractPosID(t))
                 action_toCAs.append(new_caid-1)
@@ -292,11 +291,12 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
-                mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
+                mae, rmse, mre = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
                 plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,lmbda=lmbd,
                                     fname=project_name)
                 writeSimulationOutput(project_name=project_name,
-                                      error=mean_test_error,
+                                      mae=mae,
+                                      rmse=rmse,
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
 
