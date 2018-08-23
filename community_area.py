@@ -148,6 +148,7 @@ class CommunityArea:
             for tract_id, tract in ca_rand.tracts.items():
                 tract.CA = new_ca
                 cls.updateCAFeatures(tract, prv_CAid=ca_rand_id, new_CAid=new_ca)
+                Tract.updateBoundarySet(tract)
 
             # remove selected commununity
             del all_ca[ca_rand_id]
