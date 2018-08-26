@@ -36,8 +36,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
     featureName = CommunityArea.featureNames
     ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
-    #M = 50
-    M = 10
+    M = 50
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
@@ -551,16 +550,17 @@ if __name__ == '__main__':
         # Crime
         naive_MCMC('crime-naive-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=5, Tt=0.1)
+                   lmbda=0.005, f_sd=3, Tt=0.1)
         MCMC_softmax_proposal('crime-softmax-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=5, Tt=0.1)
+                   lmbda=0.005, f_sd=3, Tt=0.1)
 
         # House Prices
         naive_MCMC('house-price-naive-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=5, Tt=0.1)
+                   lmbda=0.005, f_sd=3, Tt=0.1)
 
         MCMC_softmax_proposal('house-price-softmax-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=5, Tt=0.1)
+                   lmbda=0.005, f_sd=3, Tt=0.1)
+ 
