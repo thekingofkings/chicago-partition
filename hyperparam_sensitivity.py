@@ -189,12 +189,12 @@ if __name__ == '__main__':
 
 
     crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
-                                 max_m=77, min_m=75, plot=True)
+                                 max_m=77, min_m=20, plot=False)
 
     crime_sim.run_all(n_iter=10)
 
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=77, min_m=5, plot=True)
+                                        task='house_price', max_m=77, min_m=20, plot=False)
     house_price_sim.run_all(n_iter=10)
