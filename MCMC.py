@@ -41,7 +41,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
     lmbda = lmbd
     CA_maxsize = 30
     # Plot original community population distribution
-    CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
+    #CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
     CA_maxsize = 30
     mae1, _, _,errors1,regression_coeff_init = NB_regression_training(CommunityArea.features, featureName, targetName)
     writeBetasToFile(project_name,regression_coeff_init)

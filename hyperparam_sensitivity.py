@@ -146,6 +146,7 @@ class ParamSensitivity(object):
         return m_grid
 
     def naive_mcmc_run(self, m, iter=None):
+        print "Beginning Naive MCMC..."
         pred_target = self.get_target(self.task)
 
         # estimate naive MCMC
@@ -158,6 +159,7 @@ class ParamSensitivity(object):
                    lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
     def softmax_mcmc_run(self, m, iter=None):
+        print "Beginning Softmax MCMC..."
         pred_target = self.get_target(self.task)
         # estimate MCMC with softmax proposal
         if iter:
@@ -170,6 +172,7 @@ class ParamSensitivity(object):
                               lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
     def dqn_mcmc_run(self, m, iter=None):
+        print "Beginning DQN..."
         pred_target = self.get_target(self.task)
         # MCMC with proposal from DQN
         if iter:
@@ -184,7 +187,7 @@ class ParamSensitivity(object):
 
 
     def kmeans_run(self, m, iter=None):
-
+        print "Beginning Kmeans..."
         y_tract, y_ca = self.get_target_cluster(self.task)
 
         Tract.kMeansClustering(cluster_X=True, cluster_y=True, y=y_tract)
@@ -205,6 +208,7 @@ class ParamSensitivity(object):
 
 
     def agglomerative_run(self, m,iter=None):
+        print "Beginning Agglomerative Clustering..."
         y_tract, y_ca = self.get_target_cluster(self.task)
         Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
 
@@ -225,6 +229,7 @@ class ParamSensitivity(object):
                               n_iter_conv=m)
 
     def spectral_run(self, m, iter=None):
+        print "Beginning Spectral Clustering..."
         y_tract, y_ca = self.get_target_cluster(self.task)
 
         Tract.spectralClustering(cluster_X=True, cluster_y=True, y=y_tract)
@@ -281,7 +286,7 @@ if __name__ == '__main__':
     crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
                                  max_m=77, min_m=20, plot=True)
 
-    crime_sim.run_sim(n_iter=10, init_ca=True)
+    crime_sim.run_sim(n_iter=10, init_ca=False)
 
 
     #house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
