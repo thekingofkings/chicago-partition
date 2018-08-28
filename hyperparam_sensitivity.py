@@ -57,15 +57,18 @@ class ParamSensitivity(object):
         m_grid = self.get_grid()
 
         for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m,prev_m=m_grid[i-1])
-            # estimate naive MCMC
-            if iter:
-                fname = self.project_name + "-naive-{}.{}".format(m, iter)
-
+            if m == 77:
+                pass
             else:
-                fname = self.project_name + "-naive-{}".format(m)
-            naive_MCMC(fname, targetName=pred_target,
-                       lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                self.get_community_structure(m=m,prev_m=m_grid[i-1])
+                # estimate naive MCMC
+                if iter:
+                    fname = self.project_name + "-naive-{}.{}".format(m, iter)
+
+                else:
+                    fname = self.project_name + "-naive-{}".format(m)
+                naive_MCMC(fname, targetName=pred_target,
+                           lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
     def softmax_mcmc_run(self, iter=None):
         self.init_tracts()
@@ -136,7 +139,10 @@ class ParamSensitivity(object):
             self.get_community_structure(m=m, prev_m=m_grid[i - 1])
             # kmeans
             Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
-            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+
+            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
+                                                      CommunityArea.featureNames,
+                                                      y_ca)
 
             if iter:
                 fname = self.project_name + "-agglomerative-{}.{}".format(m, iter)
@@ -159,7 +165,9 @@ class ParamSensitivity(object):
             self.get_community_structure(m=m, prev_m=m_grid[i - 1])
             # kmeans
             Tract.spectralClustering(cluster_X=True, cluster_y=True, y=y_tract)
-            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
+                                                      CommunityArea.featureNames,
+                                                      y_ca)
 
             if iter:
                 fname = self.project_name + "-spectral-{}.{}".format(m, iter)
@@ -192,7 +200,6 @@ if __name__ == '__main__':
                                  max_m=77, min_m=20, plot=False)
 
     crime_sim.run_all(n_iter=10)
-
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
