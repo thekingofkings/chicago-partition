@@ -46,6 +46,7 @@ def NB_regression_evaluation(df, featureNames, targetName):
             - mse
             - mre
     """
+    df.dropna(inplace=True)
     errors = []
     loo = LeaveOneOut()
     features = df[featureNames]
@@ -77,6 +78,7 @@ def NB_regression_training(df, featureNames, targetName):
     """
     NB training for partition search
     """
+    df.dropna(inplace=True)
     crimeRate = df[targetName]
     nbmodel = sm.GLM(crimeRate, df[featureNames], family=sm.families.NegativeBinomial())
     model_res = nbmodel.fit()

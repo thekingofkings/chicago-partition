@@ -305,7 +305,7 @@ class CommunityArea:
         pop_df = pd.DataFrame(cls.population)
         pop_df.plot(kind='barh', figsize=(16, 12))
         plt.title('Population Distribution -- Iterations: {}'.format(iter_cnt))
-        plt.savefig("plots/" + fname)
+        plt.savefig("plots/" + fname + ".pdf")
         plt.close()
         plt.clf()
 
