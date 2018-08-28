@@ -162,8 +162,18 @@ class CommunityArea:
         cls.features = cls.features.drop(del_ca_list, axis=0)
 
 
+    @classmethod
+    def get_ca_tract_dict(cls):
+        ca_to_tract_map = dict()
 
+        for ca_id, ca in cls.CAs.items():
+            tract_list = list()
+            for t_id, tract in ca.tracts.items():
+                tract_list.append(t_id)
 
+            ca_to_tract_map[ca_id] = tract_list
+
+        return ca_to_tract_map
         
     @classmethod
     def visualizeCAs(cls,

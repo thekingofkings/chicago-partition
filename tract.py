@@ -65,6 +65,15 @@ class Tract:
         self.onEdge = False
 
     @classmethod
+    def get_tract_ca_dict(cls):
+        tract_to_ca_map = dict()
+
+        for t_id, tract in cls.tracts.items():
+            tract_to_ca_map[t_id] = tract.CA
+
+        return tract_to_ca_map
+
+    @classmethod
     def createAllTracts(cls, fname="data/Census-Tracts-2010/chicago-tract", 
                         calculateAdjacency=True):
         cls.sf = shapefile.Reader(fname)

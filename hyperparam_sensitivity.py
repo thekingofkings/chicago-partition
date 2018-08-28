@@ -4,6 +4,8 @@ from MCMC import naive_MCMC, MCMC_softmax_proposal, writeSimulationOutput
 from q_learning import q_learning
 from regression import NB_regression_evaluation
 import numpy as np
+import pickle as pkl
+import os
 
 class ParamSensitivity(object):
 
@@ -13,6 +15,7 @@ class ParamSensitivity(object):
         self.max_m = max_m
         self.min_m = min_m
         self.plot = plot
+        self.pkl_dir = 'data/community_states'
 
     def get_target(self, task):
 
@@ -35,15 +38,106 @@ class ParamSensitivity(object):
         Tract.createAllTracts()
         Tract.generateFeatures(2011)
 
+    def dump_pickle_tract_data(self, m):
+        if not os.path.exists(self.pkl_dir):
+            os.makedirs(self.pkl_dir)
+
+        tract_dict = Tract.get_tract_ca_dict()
+        tract_features = Tract.features
+        boundary_set = [x.id for x in Tract.boundarySet]
+        data = (tract_dict, tract_features, boundary_set)
+        f_name = "{}/tract-data-m-{}.p".format(self.pkl_dir, m)
+        with open(f_name, 'wb') as f:
+            pkl.dump(data, f)
+
+    def load_pickle_tract_data(self, m):
+        f_name = "{}/tract-data-m-{}.p".format(self.pkl_dir, m)
+        with open(f_name, 'rb') as f:
+            tract_dict, tract_features, boundary_list = pkl.load(f)
+
+        for t_id, tract in Tract.tracts.items():
+            tract.CA = tract_dict[t_id]
+
+        boundary_set = set()
+        for t_id in boundary_list:
+            tract = Tract.tracts[t_id]
+            boundary_set.add(tract)
+        Tract.boundarySet = boundary_set
+
+        Tract.features = tract_features
 
 
-    def get_community_structure(self,m,prev_m):
-        print "Initializing {} regions".format(self.max_m)
-        CommunityArea.createAllCAs(Tract.tracts)
-        if m < self.max_m:
-            print "Randomly combining {} regions into {} regions...".format(prev_m, m)
-            CommunityArea.rand_init_communities(m)
-            print "Dimensions of updated design matrix: {}".format(CommunityArea.features.shape)
+
+    def dump_pickle_ca_data(self, m):
+        if not os.path.exists(self.pkl_dir):
+            os.makedirs(self.pkl_dir)
+        ca_dict = CommunityArea.get_ca_tract_dict()
+        ca_feature_dict = CommunityArea.features_ca_dict
+        ca_features = CommunityArea.features
+
+        ca_poly = dict()
+        for id, ca in CommunityArea.CAs.items():
+            ca_poly[id] = ca.polygon
+
+
+        data = (ca_dict, ca_feature_dict, ca_features, ca_poly)
+        f_name = "{}/ca-data-m-{}.p".format(self.pkl_dir, m)
+        with open(f_name, 'wb') as f:
+            pkl.dump(data, f)
+
+    def load_pickle_ca_data(self, m):
+        f_name = "{}/ca-data-m-{}.p".format(self.pkl_dir, m)
+        with open(f_name, 'rb') as f:
+            ca_dict, ca_feature_dict, ca_features, ca_poly = pkl.load(f)
+
+        CommunityArea.features = ca_features
+        CommunityArea.features_ca_dict = ca_feature_dict
+
+
+        for ca_id, ca in CommunityArea.CAs.items():
+            if ca_id in ca_dict.keys():
+                    # Update tract list
+                    ca_tract_ids = ca_dict.get(ca_id, [])
+                    for t_id in ca_tract_ids:
+                        ca.tracts[t_id] = Tract.tracts[t_id]
+
+                    # update polygon shape
+                    polygon = ca_poly.get(ca_id)
+                    ca.polygon = polygon
+            else:
+                del CommunityArea.CAs[ca_id]
+
+
+
+
+    def get_random_communities(self):
+        """
+
+        :param min_m:
+        :param max_m: **Inclusive
+        :return:
+        """
+
+        m_grid = self.get_grid()
+
+        for i, m in enumerate(m_grid):
+
+            # Estimate models here
+            if m == (self.max_m):
+                print "Initializing {} regions".format(self.max_m)
+                self.init_tracts()
+                CommunityArea.createAllCAs(Tract.tracts)
+            else:
+                print "Randomly combining {} regions into {} regions...".format(m_grid[i-1], m)
+                CommunityArea.rand_init_communities(m)
+                print "Dimensions of updated design matrix: {}".format(CommunityArea.features.shape)
+                self.dump_pickle_tract_data(m=m)
+                self.dump_pickle_ca_data(m=m)
+                self.dump_pickle_ca_data(m=m)
+
+            if self.plot:
+                CommunityArea.visualizeCAs(fname='{}-{}.png'.format(self.project_name,m),
+                                           labels=True, iter_cnt=m)
 
     def get_grid(self):
         m_grid = range(self.min_m, self.max_m+1)
@@ -51,145 +145,131 @@ class ParamSensitivity(object):
 
         return m_grid
 
-    def naive_mcmc_run(self, iter=None):
-        self.init_tracts()
+    def naive_mcmc_run(self, m, iter=None):
         pred_target = self.get_target(self.task)
-        m_grid = self.get_grid()
 
-        for i, m in enumerate(m_grid):
-            if m == 77:
-                pass
-            else:
-                self.get_community_structure(m=m,prev_m=m_grid[i-1])
-                # estimate naive MCMC
-                if iter:
-                    fname = self.project_name + "-naive-{}.{}".format(m, iter)
+        # estimate naive MCMC
+        if iter:
+            fname = self.project_name + "-naive-{}.{}".format(m, iter)
 
-                else:
-                    fname = self.project_name + "-naive-{}".format(m)
-                naive_MCMC(fname, targetName=pred_target,
-                           lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+        else:
+            fname = self.project_name + "-naive-{}".format(m)
+        naive_MCMC(fname, targetName=pred_target,
+                   lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
-    def softmax_mcmc_run(self, iter=None):
-        self.init_tracts()
+    def softmax_mcmc_run(self, m, iter=None):
         pred_target = self.get_target(self.task)
-        m_grid = self.get_grid()
+        # estimate MCMC with softmax proposal
+        if iter:
+            fname = self.project_name + "-softmax-{}.{}".format(m, iter)
 
-        for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m,prev_m=m_grid[i-1])
-            # estimate MCMC with softmax proposal
-            if iter:
-                fname = self.project_name + "-softmax-{}.{}".format(m, iter)
+        else:
+            fname = self.project_name + "-softmax-{}".format(m)
 
-            else:
-                fname = self.project_name + "-softmax-{}".format(m)
+        MCMC_softmax_proposal(fname, targetName=pred_target,
+                              lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
-            MCMC_softmax_proposal(fname, targetName=pred_target,
-                                  lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
-
-    def dqn_mcmc_run(self, iter=None):
-        self.init_tracts()
+    def dqn_mcmc_run(self, m, iter=None):
         pred_target = self.get_target(self.task)
-        m_grid = self.get_grid()
+        # MCMC with proposal from DQN
+        if iter:
+            fname = self.project_name + "-dqn-{}.{}".format(m, iter)
 
-        for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m,prev_m=m_grid[i-1])
-            # MCMC with proposal from DQN
-            if iter:
-                fname = self.project_name + "-dqn-{}.{}".format(m, iter)
+        else:
+            fname = self.project_name + "-dqn-{}".format(m)
 
-            else:
-                fname = self.project_name + "-dqn-{}".format(m)
-
-            q_learning(fname,
-                       targetName=pred_target,
-                       lmbd=0.005, f_sd=3, Tt=0.1, init_ca=False)
+        q_learning(fname,
+                   targetName=pred_target,
+                   lmbd=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
 
-    def kmeans_run(self, iter=None):
-        self.init_tracts()
+    def kmeans_run(self, m, iter=None):
+
         y_tract, y_ca = self.get_target_cluster(self.task)
-        m_grid = self.get_grid()
 
-        for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m,prev_m=m_grid[i-1])
-            # kmeans
-            Tract.kMeansClustering(cluster_X=True, cluster_y=True, y=y_tract)
-            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        Tract.kMeansClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        mae, rmse, mre = NB_regression_evaluation(CommunityArea.features,
+                                                  CommunityArea.featureNames, y_ca)
 
-            if iter:
-                fname = self.project_name + "-kmeans-{}.{}".format(m, iter)
+        if iter:
+            fname = self.project_name + "-kmeans-{}.{}".format(m, iter)
 
-            else:
-                fname = self.project_name + "-kmeans-{}".format(m)
+        else:
+            fname = self.project_name + "-kmeans-{}".format(m)
 
-            writeSimulationOutput(project_name=fname,
-                                  mae=mae,
-                                  rmse=rmse,
-                                  accept_rate=np.nan,
-                                  n_iter_conv=m)
+        writeSimulationOutput(project_name=fname,
+                              mae=mae,
+                              rmse=rmse,
+                              accept_rate=np.nan,
+                              n_iter_conv=m)
 
 
-    def agglomerative_run(self, iter=None):
-        self.init_tracts()
+    def agglomerative_run(self, m,iter=None):
         y_tract, y_ca = self.get_target_cluster(self.task)
-        m_grid = self.get_grid()
+        Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
 
-        for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m, prev_m=m_grid[i - 1])
-            # kmeans
-            Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
+                                                  CommunityArea.featureNames,
+                                                  y_ca)
 
-            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
-                                                      CommunityArea.featureNames,
-                                                      y_ca)
+        if iter:
+            fname = self.project_name + "-agglomerative-{}.{}".format(m, iter)
 
-            if iter:
-                fname = self.project_name + "-agglomerative-{}.{}".format(m, iter)
+        else:
+            fname = self.project_name + "-agglomerative-{}".format(m)
 
-            else:
-                fname = self.project_name + "-agglomerative-{}".format(m)
+        writeSimulationOutput(project_name=fname,
+                              mae=mae,
+                              rmse=rmse,
+                              accept_rate=np.nan,
+                              n_iter_conv=m)
 
-            writeSimulationOutput(project_name=fname,
-                                  mae=mae,
-                                  rmse=rmse,
-                                  accept_rate=np.nan,
-                                  n_iter_conv=m)
-
-    def spectral_run(self, iter=None):
-        self.init_tracts()
+    def spectral_run(self, m, iter=None):
         y_tract, y_ca = self.get_target_cluster(self.task)
+
+        Tract.spectralClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
+                                                  CommunityArea.featureNames,
+                                                  y_ca)
+
+        if iter:
+            fname = self.project_name + "-spectral-{}.{}".format(m, iter)
+
+        else:
+            fname = self.project_name + "-spectral-{}".format(m)
+
+        writeSimulationOutput(project_name=fname,
+                              mae=mae,
+                              rmse=rmse,
+                              accept_rate=np.nan,
+                              n_iter_conv=m)
+
+    def run_sim(self, n_iter, init_ca=False):
         m_grid = self.get_grid()
 
-        for i, m in enumerate(m_grid):
-            self.get_community_structure(m=m, prev_m=m_grid[i - 1])
-            # kmeans
-            Tract.spectralClustering(cluster_X=True, cluster_y=True, y=y_tract)
-            mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
-                                                      CommunityArea.featureNames,
-                                                      y_ca)
+        if init_ca:
+            self.get_random_communities()
 
-            if iter:
-                fname = self.project_name + "-spectral-{}.{}".format(m, iter)
+        for m in m_grid:
+            if m == (self.max_m):
+                print "Initializing {} regions".format(self.max_m)
+                self.init_tracts()
+                CommunityArea.createAllCAs(Tract.tracts)
 
-            else:
-                fname = self.project_name + "-spectral-{}".format(m)
+            self.load_pickle_tract_data(m)
+            self.load_pickle_ca_data(m)
+            if self.plot:
+                CommunityArea.visualizeCAs(fname='{}-{}.png'.format(self.project_name, m),
+                                           labels=True, iter_cnt=m)
 
-            writeSimulationOutput(project_name=fname,
-                                  mae=mae,
-                                  rmse=rmse,
-                                  accept_rate=np.nan,
-                                  n_iter_conv=m)
-
-    def run_all(self, n_iter):
-
-        for i in range(1, n_iter+1):
-            self.kmeans_run(i)
-            self.agglomerative_run(i)
-            self.spectral_run(i)
-            self.naive_mcmc_run(i)
-            self.softmax_mcmc_run(i)
-            self.dqn_mcmc_run(i)
+            for i in range(1, n_iter+1):
+                print "m = {}, i = {}".format(m, i)
+                self.kmeans_run(m, i)
+                self.agglomerative_run(m, i)
+                self.spectral_run(m, i)
+                self.naive_mcmc_run(m, i)
+                self.softmax_mcmc_run(m, i)
+                self.dqn_mcmc_run(m, i)
 
 
 
@@ -197,11 +277,10 @@ if __name__ == '__main__':
 
 
     crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
-                                 max_m=77, min_m=20, plot=False)
+                                 max_m=77, min_m=20, plot=True)
+    crime_sim.run_sim(n_iter=10, init_ca=True)
 
-    crime_sim.run_all(n_iter=10)
 
-
-    house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=77, min_m=20, plot=False)
-    house_price_sim.run_all(n_iter=10)
+    #house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
+    #                                    task='house_price', max_m=77, min_m=20, plot=False)
+    #house_price_sim.run_all(n_iter=10)
