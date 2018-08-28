@@ -256,8 +256,10 @@ class ParamSensitivity(object):
                 self.init_tracts()
                 CommunityArea.createAllCAs(Tract.tracts)
 
-            self.load_pickle_tract_data(m)
-            self.load_pickle_ca_data(m)
+            else:
+                self.load_pickle_tract_data(m)
+                self.load_pickle_ca_data(m)
+
             if self.plot:
                 CommunityArea.visualizeCAs(fname='{}-{}.png'.format(self.project_name, m),
                                            labels=True, iter_cnt=m)
@@ -278,6 +280,7 @@ if __name__ == '__main__':
 
     crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
                                  max_m=77, min_m=20, plot=True)
+
     crime_sim.run_sim(n_iter=10, init_ca=True)
 
 
