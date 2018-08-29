@@ -25,7 +25,7 @@ def plotMcmcDiagnostics(iter_cnt,mae_index,error_array,f_array,std_array,lmbda=0
     axarr[2].set_xlabel("Number of iterations", fontsize=26)
 
     plt.tight_layout()
-    plt.savefig("plots/" + fname)
+    plt.savefig("plots/" + fname + '.pdf')
     plt.close()
     plt.clf()
 
