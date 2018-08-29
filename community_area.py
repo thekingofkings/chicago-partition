@@ -294,7 +294,7 @@ class CommunityArea:
             plt.title(title,fontsize = 20)
         plt.tight_layout()
         #plt.show()
-        plt.savefig("plots/" + fname)
+        plt.savefig("plots/" + fname + '.pdf')
         plt.close()
         plt.clf()
 

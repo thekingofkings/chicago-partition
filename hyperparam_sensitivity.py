@@ -107,8 +107,20 @@ class ParamSensitivity(object):
             else:
                 del CommunityArea.CAs[ca_id]
 
+    def init_communities(self, m):
+        if m == (self.max_m):
+            print "Initializing {} regions".format(self.max_m)
+            self.init_tracts()
+            CommunityArea.createAllCAs(Tract.tracts)
 
+        else:
+            print "Loading community structure from file:: m={}".format(m)
+            self.load_pickle_tract_data(m)
+            self.load_pickle_ca_data(m)
 
+        if self.plot:
+            CommunityArea.visualizeCAs(fname='{}-{}.png'.format(self.project_name, m),
+                                       labels=True, iter_cnt=m)
 
     def get_random_communities(self):
         """
@@ -147,6 +159,7 @@ class ParamSensitivity(object):
 
     def naive_mcmc_run(self, m, iter=None):
         print "Beginning Naive MCMC..."
+        self.init_communities(m=m)
         pred_target = self.get_target(self.task)
 
         # estimate naive MCMC
@@ -160,6 +173,7 @@ class ParamSensitivity(object):
 
     def softmax_mcmc_run(self, m, iter=None):
         print "Beginning Softmax MCMC..."
+        self.init_communities(m=m)
         pred_target = self.get_target(self.task)
         # estimate MCMC with softmax proposal
         if iter:
@@ -173,6 +187,7 @@ class ParamSensitivity(object):
 
     def dqn_mcmc_run(self, m, iter=None):
         print "Beginning DQN..."
+        self.init_communities(m=m)
         pred_target = self.get_target(self.task)
         # MCMC with proposal from DQN
         if iter:
@@ -188,9 +203,11 @@ class ParamSensitivity(object):
 
     def kmeans_run(self, m, iter=None):
         print "Beginning Kmeans..."
+        self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
 
         Tract.kMeansClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
         mae, rmse, mre = NB_regression_evaluation(CommunityArea.features,
                                                   CommunityArea.featureNames, y_ca)
 
@@ -209,8 +226,10 @@ class ParamSensitivity(object):
 
     def agglomerative_run(self, m,iter=None):
         print "Beginning Agglomerative Clustering..."
+        self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
         Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
 
         mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
                                                   CommunityArea.featureNames,
@@ -230,9 +249,11 @@ class ParamSensitivity(object):
 
     def spectral_run(self, m, iter=None):
         print "Beginning Spectral Clustering..."
+        self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
 
         Tract.spectralClustering(cluster_X=True, cluster_y=True, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
         mae, rmse, mre = NB_regression_evaluation(CommunityArea.features.dropna(),
                                                   CommunityArea.featureNames,
                                                   y_ca)
@@ -249,30 +270,18 @@ class ParamSensitivity(object):
                               accept_rate=np.nan,
                               n_iter_conv=m)
 
-    def run_sim(self, n_iter, init_ca=False):
+    def run_sim(self, n_iter, gen_ca=False):
         m_grid = self.get_grid()
 
-        if init_ca:
+        if gen_ca:
             self.get_random_communities()
 
         for m in m_grid:
-            if m == (self.max_m):
-                print "Initializing {} regions".format(self.max_m)
-                self.init_tracts()
-                CommunityArea.createAllCAs(Tract.tracts)
-
-            else:
-                self.load_pickle_tract_data(m)
-                self.load_pickle_ca_data(m)
-
-            if self.plot:
-                CommunityArea.visualizeCAs(fname='{}-{}.png'.format(self.project_name, m),
-                                           labels=True, iter_cnt=m)
-
             for i in range(1, n_iter+1):
                 print "m = {}, i = {}".format(m, i)
-                self.kmeans_run(m, i)
+
                 self.agglomerative_run(m, i)
+                self.kmeans_run(m, i)
                 self.spectral_run(m, i)
                 self.naive_mcmc_run(m, i)
                 self.softmax_mcmc_run(m, i)
@@ -284,9 +293,9 @@ if __name__ == '__main__':
 
 
     crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
-                                 max_m=77, min_m=20, plot=True)
+                                 max_m=77, min_m=70, plot=True)
 
-    crime_sim.run_sim(n_iter=10, init_ca=False)
+    crime_sim.run_sim(n_iter=5, gen_ca=False)
 
 
     #house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
