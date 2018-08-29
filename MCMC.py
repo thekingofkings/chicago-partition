@@ -217,11 +217,7 @@ def mcmcSamplerUniform(sample_func,
         prv_caid = t.CA
         # check wether spatial continuity is guaranteed, if t is flipped
         ca_tocheck = CommunityArea.CAs[prv_caid].tracts
-        try:
-            del ca_tocheck[t.id]
-        except KeyError:
-
-            print ca_tocheck
+        del ca_tocheck[t.id]
         resulted_shape = cascaded_union([e.polygon for e in ca_tocheck.values()])
         ca_tocheck[t.id] = t
         if resulted_shape.geom_type == 'MultiPolygon':
