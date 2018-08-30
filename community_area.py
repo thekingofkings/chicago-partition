@@ -121,7 +121,59 @@ class CommunityArea:
         cls.population = cls.features[cls.populationFeature]
 
 
+    @classmethod
+    def rand_init_communities(cls, target_m):
+        all_ca = cls.CAs
+        features_ca_dict = cls.features_ca_dict
+        M = len(all_ca)
+        del_ca_list = list()
 
+        while M > target_m:
+            # select random community
+            ca_rand_id = np.random.permutation(all_ca.keys())[0]
+            ca_rand = all_ca[ca_rand_id]
+
+            # get all adjacent communities to selected community
+            adj_ca = set()
+            for tract_id, tract in ca_rand.tracts.items():
+                for neighbor in tract.neighbors:
+                    if neighbor.CA != ca_rand_id:
+                        adj_ca.add(neighbor.CA)
+
+            # select random adjacent community
+            adj_ca = list(adj_ca)
+            new_ca = np.random.permutation(adj_ca)[0]
+            print "Merging community #{} into #{}".format(ca_rand_id, new_ca)
+            # update each tract in selected community area
+            for tract_id, tract in ca_rand.tracts.items():
+                tract.CA = new_ca
+                cls.updateCAFeatures(tract, prv_CAid=ca_rand_id, new_CAid=new_ca)
+                Tract.updateBoundarySet(tract)
+
+            # remove selected commununity
+            del all_ca[ca_rand_id]
+            del features_ca_dict[ca_rand_id]
+            del_ca_list.append(ca_rand_id)
+
+            M -= 1
+
+        cls.CAs = all_ca
+        cls.features_ca_dict = features_ca_dict
+        cls.features = cls.features.drop(del_ca_list, axis=0)
+
+
+    @classmethod
+    def get_ca_tract_dict(cls):
+        ca_to_tract_map = dict()
+
+        for ca_id, ca in cls.CAs.items():
+            tract_list = list()
+            for t_id, tract in ca.tracts.items():
+                tract_list.append(t_id)
+
+            ca_to_tract_map[ca_id] = tract_list
+
+        return ca_to_tract_map
         
     @classmethod
     def visualizeCAs(cls,
@@ -242,7 +294,7 @@ class CommunityArea:
             plt.title(title,fontsize = 20)
         plt.tight_layout()
         #plt.show()
-        plt.savefig("plots/" + fname)
+        plt.savefig("plots/" + fname + '.pdf')
         plt.close()
         plt.clf()
 
@@ -253,7 +305,7 @@ class CommunityArea:
         pop_df = pd.DataFrame(cls.population)
         pop_df.plot(kind='barh', figsize=(16, 12))
         plt.title('Population Distribution -- Iterations: {}'.format(iter_cnt))
-        plt.savefig("plots/" + fname)
+        plt.savefig("plots/" + fname + ".pdf")
         plt.close()
         plt.clf()
 
@@ -314,7 +366,8 @@ def fig_clustering_baseline(keepBest=True):
         CommunityArea.visualizeCAs(fname="agg_CAs_complete_cosine.png")
 
 
-def fig_clustering_baseline2(task,cluster_X=True,cluster_y=False):
+
+def fig_clustering_baseline2(task, n_sim,cluster_X=True, cluster_y=False):
     """
     A second function to compute baselines using classical clustering techniques (k-means,agglomerative,spectral)
     This function differs from fig_clustering_baseline() in that we can now specify on which dimensions we wish to cluster.
@@ -325,49 +378,75 @@ def fig_clustering_baseline2(task,cluster_X=True,cluster_y=False):
     :param task: (str) must be either 'crime', or 'house-price' - designates the prediction  task
     :param cluster_X: (bool) Boolean to cluster on X
     :param cluster_y: (bool) Boolean to cluster on y
+    :param cluster_y: (bool) Whether or not to initialize city structure from within function:
+                        - if False, assumes that some Tract and CommunityArea classses are
+                        initialized before executing function
     :return: None
     """
 
     from regression import NB_regression_evaluation
 
+
     Tract.createAllTracts()
     Tract.generateFeatures(2011)
 
-    tract_task_y_map = {'house-price':'test_price', 'crime':'total'}
-    ca_task_y_map = {'house-price':'test_average_house_price', 'crime':'total'}
+
+    tract_task_y_map = {'house-price': 'test_price', 'crime': 'total'}
+    ca_task_y_map = {'house-price': 'test_average_house_price', 'crime': 'total'}
     y_tract = tract_task_y_map[task]
     y_ca = ca_task_y_map[task]
 
+    results = np.zeros(shape=(n_sim, 3, 3))
 
-    print "-------Kmeans Clustering-------"
-    print "--> {} error:".format(task)
-    Tract.kMeansClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    CommunityArea.visualizeCAs(fname="kmeans_CA_{}.pdf".format(task), title='')
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+    for i in range(n_sim):
+        print "------ ITERATION {} -------  ".format(i)
 
-    print "-------Agglomerative Clustering-------"
-    Tract.agglomerativeClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
-    CommunityArea.visualizeCAs(fname="agg_CA_{}.pdf".format(task), title='')
+        print "-------Admin. Boundary-------"
+        CommunityArea.createAllCAs(Tract.tracts)
+        admin_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        print(admin_reg)
 
-    print "-------Spectral Clustering-------"
-    Tract.spectralClustering(cluster_X=cluster_X,cluster_y=cluster_y,y=y_tract)
-    CommunityArea.createAllCAs(Tract.tracts)
-    print NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames,y_ca)
-    CommunityArea.visualizeCAs(fname="spectral_CA_{}.pdf".format(task), title='')
 
+        print "-------Kmeans Clustering-------"
+        print "--> {} error:".format(task)
+        Tract.kMeansClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        CommunityArea.visualizeCAs(fname="kmeans_CA_{}.pdf".format(task), title='')
+        k_means_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        print(k_means_reg)
+
+        print "-------Agglomerative Clustering-------"
+        Tract.agglomerativeClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        agg_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        CommunityArea.visualizeCAs(fname="agg_CA_{}.pdf".format(task), title='')
+        print(agg_reg)
+
+        print "-------Spectral Clustering-------"
+        Tract.spectralClustering(cluster_X=cluster_X, cluster_y=cluster_y, y=y_tract)
+        CommunityArea.createAllCAs(Tract.tracts)
+        spectral_reg = NB_regression_evaluation(CommunityArea.features, CommunityArea.featureNames, y_ca)
+        CommunityArea.visualizeCAs(fname="spectral_CA_{}.pdf".format(task), title='')
+        print(spectral_reg)
+        print("\n")
+
+
+        results[i, 0, :] = k_means_reg
+        results[i, 1, :] = agg_reg
+        results[i, 2, :] = spectral_reg
+
+
+    means = np.mean(results,axis=0)
+    std = np.std(results,axis=0)
+
+    means = pd.DataFrame(means, index=['kmeans', 'agglomerative', 'spectral'], columns=['mae', 'rmse', 'mre'])
+    std =  pd.DataFrame(std, index=['kmeans', 'agglomerative', 'spectral'], columns=['mae', 'rmse', 'mre'])
+    return results, means, std
 
 
 if __name__ == '__main__':
-#    Tract.createAllTracts()
-#    CommunityArea.createAllCAs(Tract.tracts)
-#    CommunityArea.visualizeCAs()
-
-    fig_clustering_baseline2(cluster_X=True,cluster_y=False,task = 'crime')
-
-
-
-
+    task = 'house-price'
+    results, means, std = fig_clustering_baseline2(task=task, n_sim=10, cluster_X=False, cluster_y=True)
+    means.to_csv("output/baselines-mean-results-{}-y-only.csv".format(task))
+    std.to_csv("output/baselines-std-results-{}-y-only.csv".format(task))
 

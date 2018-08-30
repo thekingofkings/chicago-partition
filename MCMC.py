@@ -17,7 +17,7 @@ from shapely.ops import cascaded_union
 from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
 
 
-def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
+def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
     global M, T, lmbda, featureName, CA_maxsize, mae1, errors1, cnt, iter_cnt, \
         mae_series, mae_index, sd_series,pop_sd_1,f_series,epsilon
     print "# initialize {}".format(project_name)
@@ -30,17 +30,18 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
     """
     epsilon = {"acc_len":100,"prev_len":50,"f_sd":f_sd}
     random.seed(0)
-    Tract.createAllTracts()
-    CommunityArea.createAllCAs(Tract.tracts)
+    if init_ca:
+        Tract.createAllTracts()
+        CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
     ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
-    M = 500
+    M = 50
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
     # Plot original community population distribution
-    CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
+    #CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
     CA_maxsize = 30
     mae1, _, _,errors1,regression_coeff_init = NB_regression_training(CommunityArea.features, featureName, targetName)
     writeBetasToFile(project_name,regression_coeff_init)
@@ -216,7 +217,11 @@ def mcmcSamplerUniform(sample_func,
         prv_caid = t.CA
         # check wether spatial continuity is guaranteed, if t is flipped
         ca_tocheck = CommunityArea.CAs[prv_caid].tracts
-        del ca_tocheck[t.id]
+        try:
+            del ca_tocheck[t.id]
+        except KeyError:
+
+            print ca_tocheck
         resulted_shape = cascaded_union([e.polygon for e in ca_tocheck.values()])
         ca_tocheck[t.id] = t
         if resulted_shape.geom_type == 'MultiPolygon':
@@ -441,12 +446,12 @@ def leaveOneOut_evaluation(year, targetName, info_str="optimal boundary"):
 
     featureName = CommunityArea.featureNames
     print "leave one out with {} in {}".format(info_str, year)
-    reg_eval =  NB_regression_evaluation(CommunityArea.features, featureName, targetName)
+    reg_eval = NB_regression_evaluation(CommunityArea.features, featureName, targetName)
     print reg_eval
     return reg_eval
     
 
-def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
+def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10, init_ca = True):
     """
     Run naive MCMC
     :param project_name: string
@@ -457,9 +462,9 @@ def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
 
-    initialize(project_name, targetName, lmbda, f_sd, Tt)
+    initialize(project_name, targetName, lmbda, f_sd, Tt, init_ca)
     mcmcSamplerUniform(random.sample, lambda ae1, ae2, t : 1,project_name=project_name,targetName=targetName)
-    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'))
+    mae, rmse, mre = leaveOneOut_evaluation(2011, targetName=targetName.replace('train', 'test'))
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
                         error_array=mae_series,
@@ -468,7 +473,8 @@ def naive_MCMC(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
                         lmbda=lmbda,
                         fname=project_name + "-mcmc-diagnostics-final")
     writeSimulationOutput(project_name=project_name,
-                          error=mean_test_error,
+                          mae=mae,
+                          rmse=rmse,
                           n_iter_conv=iter_cnt,
                           accept_rate=len(mae_series) / float(iter_cnt))
     Tract.writePartition(fname=project_name + "-final-partition.txt")
@@ -505,7 +511,7 @@ def adaptive_MCMC():
     plotMcmcDiagnostics(mae_index=mae_index,error_array=mae_series,std_array=sd_series)
 
 
-def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10):
+def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5, Tt=10, init_ca=True):
     """
     Run guided MCMC
     :param project_name: string
@@ -516,9 +522,9 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
     if targetName not in ['total','train_average_house_price']:
         raise Exception("targetName must be total (for crime) or train_average_house_price (for house price)")
 
-    initialize(project_name, targetName, lmbda, f_sd, Tt)
+    initialize(project_name, targetName, lmbda, f_sd, Tt, init_ca)
     mcmcSamplerSoftmax(project_name,targetName=targetName)
-    mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
+    mae, rmse, mre = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
 
     plotMcmcDiagnostics(iter_cnt=None,
                         mae_index=mae_index,
@@ -528,7 +534,8 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
                         lmbda=lmbda,
                         fname=project_name+"-mcmc-diagnostics-final")
     writeSimulationOutput(project_name=project_name,
-                          error=mean_test_error,
+                          mae=mae,
+                          rmse=rmse,
                           n_iter_conv=iter_cnt,
                           accept_rate=len(mae_series) / float(iter_cnt))
 
@@ -539,10 +546,25 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 
 if __name__ == '__main__':
-#    MCMC_softmax_proposal('crime-softmax',
-#               targetName='total',
-#               lmbda=0.005, f_sd=3, Tt=0.1)
-    naive_MCMC('house-price-naive',
-               targetName='train_average_house_price',
-               lmbda=0.005, f_sd=3, Tt=0.1)
-#    MCMC_softmax_proposal("crime-softmax")
+
+    for i in range(1,101):
+        version = "v{}".format(i)
+        print "-----{}-----".format(version)
+
+        # Crime
+        naive_MCMC('crime-naive-{}'.format(version),
+                   targetName='total',
+                   lmbda=0.005, f_sd=3, Tt=0.1)
+        MCMC_softmax_proposal('crime-softmax-{}'.format(version),
+                   targetName='total',
+                   lmbda=0.005, f_sd=3, Tt=0.1)
+
+        # House Prices
+        naive_MCMC('house-price-naive-{}'.format(version),
+                   targetName='train_average_house_price',
+                   lmbda=0.005, f_sd=3, Tt=0.1)
+
+        MCMC_softmax_proposal('house-price-softmax-{}'.format(version),
+                   targetName='train_average_house_price',
+                   lmbda=0.005, f_sd=3, Tt=0.1)
+ 

@@ -25,17 +25,18 @@ from keras.models import Model
 from keras.callbacks import TensorBoard
 
 
-def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10):
+def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
     global featureName, M, T, lmbda, CA_maxsize, mae1, mae_series, mae_index, \
         iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
     print "# initialize {}".format(project_name)
     random.seed(0)
     epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": f_sd}
-    Tract.createAllTracts()
-    CommunityArea.createAllCAs(Tract.tracts)
+    if init_ca:
+        Tract.createAllTracts()
+        CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
 
-    M = 100
+    M = 50
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
@@ -162,9 +163,9 @@ def q_learning_pretrain(project_name, targetName='total', lmbd=0.75, f_sd=1.5, T
 
 
 
-def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
+def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
     global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
-    initialize(project_name, targetName, lmbd, f_sd, Tt)
+    initialize(project_name, targetName, lmbd, f_sd, Tt, init_ca)
     
     # loo evaluation test data on original boundary
 #    leaveOneOut_evaluation(2011, "Administrative boundary")
@@ -207,8 +208,11 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                 # Calculate acceptance probability --> Put on log scale
                 # calculate f ('energy') of current and proposed states
                 F_next = get_f(ae = mae2, T=T, penalty=pop_std2, lmbda=lmbd)
-                gain = 1 / (1 + math.exp(- F_next + F_cur))
-    
+                try:
+                    gain = 1 / (1 + math.exp(- F_next + F_cur))
+                except OverflowError:
+                    # More numerically stable as F_next + F_cur --> -inf?
+                    gain = math.exp(F_next + F_cur) / (1 + math.exp(F_next + F_cur))
                 partitions.append(state)
                 action_tracts.append(Tract.getTractPosID(t))
                 action_toCAs.append(new_caid-1)
@@ -292,11 +296,12 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
                                                 len(mae_series) / float(iter_cnt))
                 CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
                 CommunityArea.visualizePopDist(fname='final-pop-distribution')
-                mean_test_error, sd_test_error, mean_err_mean_val = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
+                mae, rmse, mre = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
                 plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,lmbda=lmbd,
                                     fname=project_name)
                 writeSimulationOutput(project_name=project_name,
-                                      error=mean_test_error,
+                                      mae=mae,
+                                      rmse=rmse,
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
 
@@ -314,7 +319,10 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10):
 
 
 if __name__ == '__main__':
-    for i in range(100):
+    for i in range(10):
+        q_learning('crime-q-learning-sampler-v{}'.format(i+1),
+                   targetName='total',
+                   lmbd=0.005, f_sd=5, Tt=0.1)
         q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.005, f_sd=3, Tt=0.1)
+                   lmbd=0.005, f_sd=5, Tt=0.1)

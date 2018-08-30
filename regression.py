@@ -13,9 +13,9 @@ import statsmodels.api as sm
 from sklearn.model_selection import LeaveOneOut
 from sklearn import linear_model
 
-def computeError(y_true,y_hat,metric='mse'):
+def computeError(residual,metric='mse', y_true=None, precision=2):
 
-    residual = y_true - y_hat
+    #esidual = y_true - y_hat
 
     if metric == 'mse':
         error_metric = np.mean(np.power(residual,2))
@@ -23,12 +23,14 @@ def computeError(y_true,y_hat,metric='mse'):
         error_metric = np.sum(np.power(residual, 2))
     elif metric == 'mae':
         error_metric = np.mean(np.abs(residual))
-    elif metric == 'mre':
+    elif metric == 'mre' and y_true is not None:
         error_metric = np.sum(np.abs(residual)) / np.sum(y_true)
+    elif metric == 'rmse':
+        error_metric = np.power(np.mean(np.power(residual, 2)),.5)
     else:
-        raise Exception("error metric must be mse, sse, or mre")
+        raise Exception("error metric must be mse, rmse, sse, or mre")
 
-    return error_metric
+    return np.round(error_metric,precision)
 
 
 def NB_regression_evaluation(df, featureNames, targetName):
@@ -40,7 +42,11 @@ def NB_regression_evaluation(df, featureNames, targetName):
         The pandas.DataFrame of CA level features
     Output:
         The mean error of multi-rounds leave-one-out.
+            - mae
+            - mse
+            - mre
     """
+    df.dropna(inplace=True)
     errors = []
     loo = LeaveOneOut()
     features = df[featureNames]
@@ -53,7 +59,6 @@ def NB_regression_evaluation(df, featureNames, targetName):
 
     target_in_names = targetName in feature_names_all
 
-
     for train_idx, test_idx in loo.split(df):
         X_train, y_train = features.iloc[train_idx], crimeRate.iloc[train_idx]
         X_test, y_test = features.iloc[test_idx], crimeRate.iloc[test_idx]
@@ -61,13 +66,19 @@ def NB_regression_evaluation(df, featureNames, targetName):
         model_res = nbmodel.fit()
         y_pred = nbmodel.predict(model_res.params, X_test)
         errors.append(abs(y_pred[0] - y_test.iat[0]))
-    return np.round(np.mean(errors),2), np.round(np.std(errors),2), np.round(np.mean(errors)/np.mean(crimeRate),2)
+
+    rmse = computeError(residual=errors,metric='rmse')
+    mae = computeError(residual=errors,metric='mae')
+    mre = computeError(residual=errors,metric='mre',y_true=crimeRate)
+
+    return mae, rmse, mre
 
 
 def NB_regression_training(df, featureNames, targetName):
     """
     NB training for partition search
     """
+    df.dropna(inplace=True)
     crimeRate = df[targetName]
     nbmodel = sm.GLM(crimeRate, df[featureNames], family=sm.families.NegativeBinomial())
     model_res = nbmodel.fit()

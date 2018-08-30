@@ -1,0 +1,110 @@
+B1901D10: Asian $45,000 to $49,999 
+B1901D11: Asian $50,000 to $59,999 
+B1901D12: Asian $60,000 to $74,999 
+B1901D13: Asian $75,000 to $99,999 
+B1901D14: Asian $100,000 to $124,999 
+B1901D15: Asian $125,000 to $149,999 
+B1901D16: Asian $150,000 to $199,999 
+B1901D17: Asian $200,000 or more 
+B1901H24: White not Latino $100,000 or more 
+B1901H21: White not Latino Less than $25,000 
+B1901H23: White not Latino $50,000 to $99,999 
+B1901H22: White not Latino $25,000 to $49,999 
+B1901D03: Asian $10,000 to $14,999 
+B1901D02: Asian Less than $10,000 
+B1901D01: Asian Households 
+B1901D07: Asian $30,000 to $34,999 
+B1901D06: Asian $25,000 to $29,999 
+B1901D05: Asian $20,000 to $24,999 
+B1901D04: Asian $15,000 to $19,999 
+B1901D09: Asian $40,000 to $44,999 
+B1901D08: Asian $35,000 to $39,999 
+B1901I11: Latino $50,000 to $59,999 
+B1901I10: Latino $45,000 to $49,999 
+B1901I13: Latino $75,000 to $99,999 
+B1901I12: Latino $60,000 to $74,999 
+B1901I15: Latino $125,000 to $149,999 
+B1901I14: Latino $100,000 to $124,999 
+B1901I17: Latino $200,000 or more 
+B1901I16: Latino $150,000 to $199,999 
+B1913B01: Black Median household income 
+B1901014: Total $100,000 to $124,999 
+B1901015: Total $125,000 to $149,999 
+B1901016: Total $150,000 to $199,999 
+B1901017: Total $200,000 or more 
+B1901010: Total $45,000 to $49,999 
+B1901011: Total $50,000 to $59,999 
+B1901012: Total $60,000 to $74,999 
+B1901013: Total $75,000 to $99,999 
+B1913I01: Latino Median household income 
+B1913D01: Asian Median household income 
+B1901D21: Asian Less than $25,000 
+B1901D23: Asian $50,000 to $99,999 
+B1901B24: Black $100,000 or more 
+B1901B23: Black $50,000 to $99,999 
+B1901B22: Black $25,000 to $49,999 
+B1901B21: Black Less than $25,000 
+B1901007: Total $30,000 to $34,999 
+B1901006: Total $25,000 to $29,999 
+B1901005: Total $20,000 to $24,999 
+B1901004: Total $15,000 to $19,999 
+B1901003: Total $10,000 to $14,999 
+B1901002: Total Less than $10,000 
+B1901001: Total Households 
+B1901009: Total $40,000 to $44,999 
+B1901008: Total $35,000 to $39,999 
+B1901B12: Black $60,000 to $74,999 
+B1901B13: Black $75,000 to $99,999 
+B1901B10: Black $45,000 to $49,999 
+B1901B11: Black $50,000 to $59,999 
+B1901B16: Black $150,000 to $199,999 
+B1901B17: Black $200,000 or more 
+B1901B14: Black $100,000 to $124,999 
+B1901B15: Black $125,000 to $149,999 
+B1901D22: Asian $25,000 to $49,999 
+B1913001: Total Median household income 
+B1901D24: Asian $100,000 or more 
+B1901I21: Latino Less than $25,000 
+B1901I22: Latino $25,000 to $49,999 
+B1901I23: Latino $50,000 to $99,999 
+B1901I24: Latino $100,000 or more 
+B1901B05: Black $20,000 to $24,999 
+B1901B04: Black $15,000 to $19,999 
+B1901B07: Black $30,000 to $34,999 
+B1901B06: Black $25,000 to $29,999 
+B1901B01: Black Households 
+B1913H01: White not Latino Median household income 
+B1901B03: Black $10,000 to $14,999 
+B1901B02: Black Less than $10,000 
+B1901B09: Black $40,000 to $44,999 
+B1901B08: Black $35,000 to $39,999 
+B1901024: Total $100,000 or more 
+B1901021: Total Less than $25,000 
+B1901023: Total $50,000 to $99,999 
+B1901022: Total $25,000 to $49,999 
+B1901H14: White not Latino $100,000 to $124,999 
+B1901H15: White not Latino $125,000 to $149,999 
+B1901H16: White not Latino $150,000 to $199,999 
+B1901H17: White not Latino $200,000 or more 
+B1901H10: White not Latino $45,000 to $49,999 
+B1901H11: White not Latino $50,000 to $59,999 
+B1901H12: White not Latino $60,000 to $74,999 
+B1901H13: White not Latino $75,000 to $99,999 
+B1901H09: White not Latino $40,000 to $44,999 
+B1901H08: White not Latino $35,000 to $39,999 
+B1901H07: White not Latino $30,000 to $34,999 
+B1901H06: White not Latino $25,000 to $29,999 
+B1901H05: White not Latino $20,000 to $24,999 
+B1901H04: White not Latino $15,000 to $19,999 
+B1901H03: White not Latino $10,000 to $14,999 
+B1901H02: White not Latino Less than $10,000 
+B1901H01: White not Latino Households 
+B1901I06: Latino $25,000 to $29,999 
+B1901I07: Latino $30,000 to $34,999 
+B1901I04: Latino $15,000 to $19,999 
+B1901I05: Latino $20,000 to $24,999 
+B1901I02: Latino Less than $10,000 
+B1901I03: Latino $10,000 to $14,999 
+B1901I01: Latino Households 
+B1901I08: Latino $35,000 to $39,999 
+B1901I09: Latino $40,000 to $44,999 
