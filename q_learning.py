@@ -23,6 +23,8 @@ from MCMC import leaveOneOut_evaluation, get_f,isConvergent
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 from keras.callbacks import TensorBoard
+import re
+import sys
 
 
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
@@ -172,7 +174,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10, ini
     # restore training data
 #    CommunityArea._initializeCAfeatures(2010)
     model, tbCallback = DQN_model()
-    model_filepath = "dqn-house-price.params"
+    model_name = re.match(".+(?=-v.+)", project_name)
+    model_filepath = "{}.model".format(model_name)
     if os.path.exists(model_filepath):
         model.load_weights(model_filepath)
     dqn_learn = True
@@ -319,10 +322,17 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10, ini
 
 
 if __name__ == '__main__':
+    task = sys.argv[1]
+    if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     for i in range(10):
-        q_learning('crime-q-learning-sampler-v{}'.format(i+1),
+        if task == 'crime':
+            q_learning('crime-q-learning-sampler-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.005, f_sd=5, Tt=0.1)
-        q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
+                   lmbd=0.005, f_sd=3, Tt=0.1)
+        elif task == "house-price":
+            q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.005, f_sd=5, Tt=0.1)
+                   lmbd=0.005, f_sd=3, Tt=0.1)
+        else:
+            print "Enter task: crime | house-price"
