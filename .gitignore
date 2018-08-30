@@ -107,3 +107,7 @@ data
 
 # pycharm project
 .idea/
+
+output
+plots
+*.params

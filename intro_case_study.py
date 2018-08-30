@@ -122,9 +122,10 @@ def fig_tracts_within_outlier_CA(tract_ids, dist_mtx):
     for cnt, idx in enumerate(sort_idx):
         if cnt < 5:
             tractColors[tract_ids[idx]] = 'red'
+            print idx, tract_ids[idx]
         else:
             tractColors[tract_ids[idx]] = 'blue'
-    Tract.visualizeTracts(tract_ids, tractColors, (8,6), "plots/case-study-crime/tracts_within_CA.pdf")
+    Tract.visualizeTracts(tract_ids, tractColors, (8,6), "plots/case-study-crime/tracts_within_CA.pdf", labels=True)
 
 
 
