@@ -6,6 +6,8 @@ from regression import NB_regression_evaluation
 import numpy as np
 import pickle as pkl
 import os
+import logging
+import datetime as dt
 
 class ParamSensitivity(object):
 
@@ -16,6 +18,22 @@ class ParamSensitivity(object):
         self.min_m = min_m
         self.plot = plot
         self.pkl_dir = 'data/community_states'
+        self.start_time = None
+        self.end_time = None
+
+    def config_log(self):
+        if not os.path.isdir('log'):
+            os.mkdir('log')
+        now = dt.datetime.now()
+        self.start_time = now
+        fname = 'log/sensitivity_study_{}.log'.format(now)
+        logging.basicConfig(filename=fname, level=logging.INFO, filemode='w')
+        logging.info('Starting sensitivity study: %s', now)
+
+    def emit_log(self, msg):
+        now = dt.datetime.now()
+        msg = "\n\t{} --> ".format(now) + msg
+        logging.info(msg)
 
     def get_target(self, task):
 
@@ -158,7 +176,8 @@ class ParamSensitivity(object):
         return m_grid
 
     def naive_mcmc_run(self, m, iter=None):
-        print "Beginning Naive MCMC..."
+        msg = "Beginning naice MCMC - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         pred_target = self.get_target(self.task)
 
@@ -172,7 +191,8 @@ class ParamSensitivity(object):
                    lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
     def softmax_mcmc_run(self, m, iter=None):
-        print "Beginning Softmax MCMC..."
+        msg = "Beginning Softmax MCMC - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         pred_target = self.get_target(self.task)
         # estimate MCMC with softmax proposal
@@ -186,7 +206,8 @@ class ParamSensitivity(object):
                               lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
 
     def dqn_mcmc_run(self, m, iter=None):
-        print "Beginning DQN..."
+        msg = "Beginning DQN MCMC - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         pred_target = self.get_target(self.task)
         # MCMC with proposal from DQN
@@ -202,7 +223,8 @@ class ParamSensitivity(object):
 
 
     def kmeans_run(self, m, iter=None):
-        print "Beginning Kmeans..."
+        msg = "Beginning KMeans Clustering - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
 
@@ -225,7 +247,8 @@ class ParamSensitivity(object):
 
 
     def agglomerative_run(self, m,iter=None):
-        print "Beginning Agglomerative Clustering..."
+        msg = "Beginning Agglomerative Clustering - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
         Tract.agglomerativeClustering(cluster_X=True, cluster_y=True, y=y_tract)
@@ -248,7 +271,8 @@ class ParamSensitivity(object):
                               n_iter_conv=m)
 
     def spectral_run(self, m, iter=None):
-        print "Beginning Spectral Clustering..."
+        msg = "Beginning Spectral Clustering - {}.{}".format(m,iter)
+        self.emit_log(msg)
         self.init_communities(m=m)
         y_tract, y_ca = self.get_target_cluster(self.task)
 
@@ -270,7 +294,13 @@ class ParamSensitivity(object):
                               accept_rate=np.nan,
                               n_iter_conv=m)
 
+    def test_err(self):
+        x = np.random.uniform(0,1,1)
+        if x < .25:
+            raise Exception("Testing error catching...")
+
     def run_sim(self, n_iter, gen_ca=False):
+        self.config_log()
         m_grid = self.get_grid()
 
         if gen_ca:
@@ -278,26 +308,49 @@ class ParamSensitivity(object):
 
         for m in m_grid:
             for i in range(1, n_iter+1):
-                print "m = {}, i = {}".format(m, i)
+                prog = "m = {}, i = {}".format(m, i)
+                print prog
+                self.emit_log(prog)
 
-                self.agglomerative_run(m, i)
-                self.kmeans_run(m, i)
-                self.spectral_run(m, i)
-                self.naive_mcmc_run(m, i)
-                self.softmax_mcmc_run(m, i)
-                self.dqn_mcmc_run(m, i)
+                try:
+                    self.agglomerative_run(m, i)
+                except:
+                    logging.error(prog,exc_info=True)
+                try:
+                    self.kmeans_run(m, i)
+                except:
+                    logging.error(prog, exc_info=True)
+                try:
+                    self.spectral_run(m, i)
+                except:
+                    logging.error(prog, exc_info=True)
+                try:
+                    self.naive_mcmc_run(m, i)
+                except:
+                    logging.error(prog, exc_info=True)
+                try:
+                    self.softmax_mcmc_run(m, i)
+                except:
+                    logging.error(prog, exc_info=True)
+                try:
+                    self.dqn_mcmc_run(m, i)
+                except:
+                    logging.error(prog, exc_info=True)
 
+        self.end_time = dt.datetime.now()
+        msg = "Total running time: {}".format(self.end_time - self.start_time)
+        self.emit_log(msg)
 
 
 if __name__ == '__main__':
 
 
-    crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
-                                 max_m=77, min_m=20, plot=True)
+    #crime_sim = ParamSensitivity(project_name='sensitivity-study-crime', task='crime',
+    #                             max_m=77, min_m=20, plot=True)
 
-    crime_sim.run_sim(n_iter=10, gen_ca=False)
+    #crime_sim.run_sim(n_iter=10, gen_ca=False)
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=77, min_m=20, plot=False)
+                                        task='house_price', max_m=76, min_m=20, plot=False)
     house_price_sim.run_sim(n_iter=10, gen_ca=False)
