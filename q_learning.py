@@ -27,7 +27,7 @@ import re
 import sys
 
 
-def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
+def initialize(project_name, targetName, lmbd=0.75, f_sd=0.015, Tt=10, init_ca = True):
     global featureName, M, T, lmbda, CA_maxsize, mae1, mae_series, mae_index, \
         iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
     print "# initialize {}".format(project_name)
@@ -165,7 +165,7 @@ def q_learning_pretrain(project_name, targetName='total', lmbd=0.75, f_sd=1.5, T
 
 
 
-def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
+def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, init_ca = True):
     global iter_cnt, mae_series, F_series, pop_std1, cnt, mae1
     initialize(project_name, targetName, lmbd, f_sd, Tt, init_ca)
     
@@ -175,7 +175,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=1.5, Tt=10, ini
 #    CommunityArea._initializeCAfeatures(2010)
     model, tbCallback = DQN_model()
     model_name = re.match(".+(?=-v.+)", project_name)
-    model_filepath = "{}.model".format(model_name)
+    model_filepath = "{}.model".format(model_name.group())
     if os.path.exists(model_filepath):
         model.load_weights(model_filepath)
     dqn_learn = True
@@ -325,14 +325,16 @@ if __name__ == '__main__':
     task = sys.argv[1]
     if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    for i in range(10):
+    else:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    for i in range(100):
         if task == 'crime':
             q_learning('crime-q-learning-sampler-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.005, f_sd=3, Tt=0.1)
+                   lmbd=0.005, f_sd=0.015, Tt=0.1)
         elif task == "house-price":
             q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.005, f_sd=3, Tt=0.1)
+                   lmbd=0.005, f_sd=0.015, Tt=0.1)
         else:
             print "Enter task: crime | house-price"
