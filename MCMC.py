@@ -121,11 +121,14 @@ def softmax(x,log=False):
         return exp_X / np.sum(exp_X)
 
 def isConvergent(epsilon, series):
-    if len(series) > epsilon['acc_len'] and \
-        np.std(series[-epsilon["prev_len"]:]) / np.average(series[-epsilon["prev_len"]:]) < epsilon["f_sd"]:
-        return True
-    else:
-        return False
+    if len(series) > epsilon['acc_len']:
+        stdQs = np.std(series[-epsilon["prev_len"]:])
+        avgQs = np.abs(np.mean(series[-epsilon["prev_len"]:]))
+        ratio = stdQs / avgQs
+        if ratio < epsilon["f_sd"]:
+            print "Converged with std {}, abs avg {}, std/avg {}".format(stdQs, avgQs, ratio)
+            return True
+    return False
 
 
 def writeBetasToFile(project_name,betas):
