@@ -327,14 +327,14 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    for i in range(100):
+    for i in range(10):
         if task == 'crime':
             q_learning('crime-q-learning-sampler-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.005, f_sd=0.015, Tt=0.1)
+                   lmbd=0.03, f_sd=0.01, Tt=0.1)
         elif task == "house-price":
             q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.005, f_sd=0.015, Tt=0.1)
+                   lmbd=0.0004, f_sd=0.01, Tt=0.1)
         else:
             print "Enter task: crime | house-price"

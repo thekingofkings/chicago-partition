@@ -67,8 +67,7 @@ def get_f(ae, T, penalty=None, log=True, lmbda=0.75):
     """
     if penalty is None:
         penalty = 0
-
-
+    
     if log:
         return -(ae + lmbda*penalty) / T
     else:

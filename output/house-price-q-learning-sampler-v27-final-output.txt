@@ -1,3 +1,4 @@
-error: 24.5462
-iterations: 419
-acceptance rate: 0.9976
+mae: 24.8900
+rmse: 36.2400
+iterations: 361
+acceptance rate: 1.0028
