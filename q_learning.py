@@ -327,7 +327,7 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    for i in range(10):
+    for i in range(30):
         if task == 'crime':
             q_learning('crime-q-learning-sampler-v{}'.format(i+1),
                    targetName='total',
