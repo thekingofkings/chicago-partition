@@ -102,7 +102,10 @@ ENV/
 
 
 # data foler
-data
+data/Cencus-CA-Now
+data/Census-Tracts-2010
+data/ChiCA_gps
+data/chicago-shp-2010-gps
 *.png
 
 # pycharm project

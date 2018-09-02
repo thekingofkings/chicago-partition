@@ -8,6 +8,8 @@ import pickle as pkl
 import os
 import logging
 import datetime as dt
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class ParamSensitivity(object):
 
@@ -324,7 +326,7 @@ class ParamSensitivity(object):
                     self.spectral_run(m, i)
                 except:
                     logging.error(prog, exc_info=True)
-                try:
+                """try:
                     self.naive_mcmc_run(m, i)
                 except:
                     logging.error(prog, exc_info=True)
@@ -335,11 +337,101 @@ class ParamSensitivity(object):
                 try:
                     self.dqn_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)
+                    logging.error(prog, exc_info=True)"""
 
         self.end_time = dt.datetime.now()
         msg = "Total running time: {}".format(self.end_time - self.start_time)
         self.emit_log(msg)
+
+
+class ParamSensitivityPlotter(object):
+    def __init__(self, project_name, max_m, min_m, task, n_iter, metric, mod_analysis_list=None):
+        self.project_name = project_name
+        self.max_m = max_m
+        self.min_m = min_m
+        self.task = task
+        self.n_iter = n_iter
+        self.metric = metric
+        self.models = ['naive', 'softmax',
+                       'dqn', 'kmeans', 'agglomerative', 'spectral']
+        self.model_labels ={'naive': 'Naive',
+                            'softmax': 'Softmax',
+                            'dqn': 'DQN',
+                            'kmeans': 'K-means',
+                            'agglomerative': 'Agglomerative',
+                            'spectral': 'Spectral'}
+        if mod_analysis_list:
+            self.mod_analysis_list = mod_analysis_list
+        else:
+            self.mod_analysis_list = self.models
+
+
+    def get_task_str(self):
+        if self.task == 'house_price':
+            return 'houseprice'
+        elif self.task == 'crime':
+            return 'crime'
+        else:
+            raise ValueError('task: must be house_price or crime')
+
+    def get_file_name(self, model, m, i):
+        task_str = self.get_task_str()
+        fname = "output/sensitivity-study-{}-{}-{}.{}-final-output.txt".format(task_str,
+                                                                        model, m, i)
+        return fname
+
+    def get_results(self):
+        results = list()
+
+        for mod in self.models:
+            for m in range(self.min_m, self.max_m+1):
+                for i in range(1,self.n_iter+1):
+                    fname = self.get_file_name(mod,m,i)
+                    sim_result = self.get_final_output_file(fname)
+                    row = [mod, m, i, sim_result]
+                    results.append(row)
+
+        results_df = pd.DataFrame(results, columns = ['model','m','i',self.metric])
+        results_df.set_index(['model', 'm', 'i'], inplace=True)
+        return results_df
+
+    def get_final_output_file(self, fname):
+        try:
+            with open(fname, 'r') as f:
+                for line in f:
+                    line_split = line.split(":")
+                    if line_split[0].strip() == self.metric:
+                        result = float(line_split[1].strip())
+                        break
+                    else:
+                        result = np.nan
+            return result
+        except IOError:
+            result = np.nan
+            return result
+
+    def gen_plot(self):
+        results = self.get_results()
+        means = results.groupby(by=['model','m']).mean()
+        std = results.groupby(by=['model','m']).std()
+
+        print means
+        print std
+
+        plt.figure(figsize=(12,8))
+        for mod in self.models:
+            if mod in self.mod_analysis_list:
+                arr = means.loc[mod]
+                plt.plot(arr, label=self.model_labels[mod], linewidth=2.5, linestyle='-.')
+
+        plt.xlim(self.max_m, self.min_m)
+        plt.legend(loc='best')
+        plt.title('Model Prediction Error by Number of Regions', fontsize=18)
+        plt.xlabel('Number of Regions (m)', fontsize=15)
+        plt.ylabel('Prediction Error ({})'.format(self.metric), fontsize=15)
+        plt.savefig('plots/sensitivity-study-{}.pdf'.format(self.metric))
+
+
 
 
 if __name__ == '__main__':
@@ -352,5 +444,5 @@ if __name__ == '__main__':
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=76, min_m=20, plot=False)
-    house_price_sim.run_sim(n_iter=10, gen_ca=False)
+                                        task='house_price', max_m=76, min_m=60, plot=False)
+    house_price_sim.run_sim(n_iter=3, gen_ca=False)
