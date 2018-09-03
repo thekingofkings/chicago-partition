@@ -267,7 +267,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 
         # take the best action
         if action_tract is None or action_ca is None:
-            print "!== Did not find an action to improve within 32 trials. Restart and update DQN"
+            # print "!== Did not find an action to improve within 32 trials. Restart and update DQN"
             dqn_learn = True
             continue
         else:
@@ -283,10 +283,10 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
             std_series.append(pop_std2)
             f_cur = get_f(mae2, T, pop_std2, lmbda=lmbd)
             if f_cur <= F_series[-1]:
-                print "DQN not accurate. Update DQN"
+                # print "DQN not accurate. Update DQN"
                 dqn_learn = True
             F_series.append(f_cur)
-            if iter_cnt % 10 == 0:
+            if iter_cnt % 50 == 0:
                 print "Iteration {}: {} --> {}".format(iter_cnt, mae1, mae2)
             # Update error, variance
             mae1, pop_std1 = mae2, pop_std2
@@ -327,14 +327,14 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    for i in range(30):
+    for i in range(10):
         if task == 'crime':
             q_learning('crime-q-learning-sampler-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.03, f_sd=0.01, Tt=0.1)
+                   lmbd=0.03, f_sd=0.008, Tt=0.1)
         elif task == "house-price":
             q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.0004, f_sd=0.01, Tt=0.1)
+                   lmbd=0.0004, f_sd=0.008, Tt=0.1)
         else:
             print "Enter task: crime | house-price"
