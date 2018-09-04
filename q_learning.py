@@ -176,10 +176,11 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 #    CommunityArea._initializeCAfeatures(2010)
     model, tbCallback = DQN_model()
     model_name = re.match(".+(?=-v.+)", project_name)
-    if model_name is not None:
-        model_filepath = "{}.model".format(model_name.group())
-        if os.path.exists(model_filepath):
-            model.load_weights(model_filepath)
+    if model_name is None:
+        model_name = re.match(".+(?=-\d+)", project_name)
+    model_filepath = "{}.model".format(model_name.group())
+    if os.path.exists(model_filepath):
+        model.load_weights(model_filepath)
     dqn_learn = True
 
     print "# sampling"
@@ -326,7 +327,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 
 
 if __name__ == '__main__':
-    task = sys.argv[1]
+    #task = sys.argv[1]
+    task = 'house-price'
     if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:

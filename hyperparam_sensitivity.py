@@ -341,14 +341,14 @@ class ParamSensitivity(object):
                 #    self.naive_mcmc_run(m, i)
                 #except:
                 #    logging.error(prog, exc_info=True)
+                #try:
+                #    self.softmax_mcmc_run(m, i)
+                #except:
+                #    logging.error(prog, exc_info=True)
                 try:
-                    self.softmax_mcmc_run(m, i)
-                except:
-                    logging.error(prog, exc_info=True)
-                """try:
                     self.dqn_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)"""
+                    logging.error(prog, exc_info=True)
 
         self.end_time = dt.datetime.now()
         msg = "Total running time: {}".format(self.end_time - self.start_time)
