@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
@@ -313,10 +314,10 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
                 Tract.writePartition(fname=project_name + "-final-partition.txt")
                 break
 
-        if iter_cnt % 500 == 0:
-            CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
-            CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
-                                           iter_cnt=iter_cnt)
+        #if iter_cnt % 500 == 0:
+        #    CommunityArea.visualizeCAs(iter_cnt=iter_cnt, fname="CAs-iter-{}.png".format(iter_cnt))
+        #    CommunityArea.visualizePopDist(fname='pop-distribution-iter-{}'.format(iter_cnt),
+        #                                   iter_cnt=iter_cnt)
     
     model.save_weights(model_filepath)
     del model
