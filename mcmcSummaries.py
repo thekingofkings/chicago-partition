@@ -165,6 +165,7 @@ if __name__ == '__main__':
     print "----TASK: Crime Prediction----\n"
     print "------------"
     print "Simulation Summaries:"
+
     getSimulationSummaryStats('crime-naive',n_sim=10)
     getSimulationSummaryStats('crime-softmax', n_sim=10)
     getSimulationSummaryStats('crime-q-learning-T1p2', n_sim=10)
@@ -172,14 +173,13 @@ if __name__ == '__main__':
     print "----TASK: House Price Prediction----\n"
     print "------------"
     print "Simulation Summaries:"
+
     getSimulationSummaryStats('house-price-naive',n_sim=10)
     getSimulationSummaryStats('house-price-softmax', n_sim=10)
     getSimulationSummaryStats('house-price-q-learning-sampler', n_sim=10)
 
     # Create plot of convergence diagnostics of all three methods
     #fig_convergence_study()
-
-
 
 
 

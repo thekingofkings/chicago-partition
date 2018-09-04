@@ -1,0 +1,4 @@
+mae: 21.9400
+rmse: 33.4300
+iterations: 33
+acceptance rate: nan
