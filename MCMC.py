@@ -182,7 +182,10 @@ def softmaxSamplingScheme(errors,community_structure_dict,boundary_tracts,query_
 
     # Sample tract (on boundary) within previously sampled community area
     t = np.random.choice(a=sample_ca_boundary_tracts, size=1, replace=False)[0]
-    sample_ca_prob = ca_probs.loc[sample_ca_id]
+    try:
+        sample_ca_prob = ca_probs.loc[sample_ca_id]
+    except KeyError:
+        stop = 0
 
     tract_prob = 1 / float(len(sample_ca_boundary_tracts))
     if log:
@@ -374,11 +377,16 @@ def mcmcSamplerSoftmax(project_name,targetName):
         log_q_proposed_given_current = log_sample_ca_prob + log_tract_prob
 
         # Reverse conditioning to get q(z | z'); i.e., probability of current state given proposed state
-        _, _, log_sample_ca_prob_reverse, log_tract_prob_reverse = softmaxSamplingScheme(errors=errors2,
-                                                                                 community_structure_dict=CommunityArea.CAs,
-                                                                                 boundary_tracts=Tract.boundarySet,
-                                                                                 query_ca_prob=prv_caid,
-                                                                                 log=True)
+        if prv_caid in errors2.index:
+            _, _, log_sample_ca_prob_reverse, log_tract_prob_reverse = softmaxSamplingScheme(errors=errors2,
+                                                                                     community_structure_dict=CommunityArea.CAs,
+                                                                                     boundary_tracts=Tract.boundarySet,
+                                                                                     query_ca_prob=prv_caid,
+                                                                                     log=True)
+        else:
+            log_sample_ca_prob_reverse = -np.inf
+            log_tract_prob_reverse = -np.inf
+
         log_q_current_given_proposed = log_sample_ca_prob_reverse + log_tract_prob_reverse
 
         # Compute gamma for acceptance probability

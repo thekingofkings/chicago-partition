@@ -336,19 +336,19 @@ class ParamSensitivity(object):
                 try:
                     self.spectral_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)
-                try:
-                    self.naive_mcmc_run(m, i)
-                except:
-                    logging.error(prog, exc_info=True)
+                    logging.error(prog, exc_info=True)"""
+                #try:
+                #    self.naive_mcmc_run(m, i)
+                #except:
+                #    logging.error(prog, exc_info=True)
                 try:
                     self.softmax_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)"""
-                try:
+                    logging.error(prog, exc_info=True)
+                """try:
                     self.dqn_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)
+                    logging.error(prog, exc_info=True)"""
 
         self.end_time = dt.datetime.now()
         msg = "Total running time: {}".format(self.end_time - self.start_time)
@@ -429,7 +429,7 @@ class ParamSensitivityPlotter(object):
         print means
         print std
 
-        plt.figure(figsize=(12,8))
+        plt.figure(figsize=(8,6))
         for mod in self.models:
             if mod in self.mod_analysis_list:
                 arr = means.loc[mod]
@@ -437,10 +437,11 @@ class ParamSensitivityPlotter(object):
 
         plt.xlim(self.max_m, self.min_m)
         plt.legend(loc='best')
-        plt.title('Model Prediction Error by Number of Regions', fontsize=18)
-        plt.xlabel('Number of Regions (m)', fontsize=15)
-        plt.ylabel('Prediction Error ({})'.format(self.metric), fontsize=15)
+        plt.xlabel('Number of Regions (m)', fontsize=20)
+        plt.ylabel('Mean Prediction Error ({})'.format(self.metric), fontsize=20)
+        plt.tick_params(axis='both', labelsize=15)
         plt.savefig('plots/sensitivity-study-{}.pdf'.format(self.metric))
+
 
 
 
@@ -454,6 +455,6 @@ if __name__ == '__main__':
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=77, min_m=40, plot=False,
+                                        task='house_price', max_m=69, min_m=61, plot=False,
                                        lmbda = 0.000001, f_sd=0.03, T=.01)
-    house_price_sim.run_sim(n_iter=3, gen_ca=False)
+    house_price_sim.run_sim(n_iter=5, gen_ca=False)
