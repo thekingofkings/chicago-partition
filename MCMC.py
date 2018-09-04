@@ -15,6 +15,8 @@ import random
 import numpy as np
 from shapely.ops import cascaded_union
 from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
+import logging
+
 
 
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
@@ -28,6 +30,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
             - prev_len: last n (accepted) samples to examine for convergence
             - f_sd: standard deviation of prev_len
     """
+    epsilon = {"acc_len":100,"prev_len":50,"f_sd":f_sd}
     random.seed(0)
     if init_ca:
         Tract.createAllTracts()
@@ -35,10 +38,9 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
     featureName = CommunityArea.featureNames
     ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
-    M = 100
+    M = 500
     T = Tt
     lmbda = lmbd
-    epsilon = {"acc_len": M,"prev_len":50,"f_sd":f_sd}
     CA_maxsize = 30
     # Plot original community population distribution
     #CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
@@ -266,9 +268,12 @@ def mcmcSamplerUniform(sample_func,
 
             if isConvergent(epsilon,f_series):
                 # when mae converges
-                print "converge in {} samples with {} acceptances \
+                msg = "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                       len(mae_series) / float(iter_cnt))
+                print msg
+                logging.info(msg)
+                logging.info('Population standard deviation: %s', pop_sd_1)
                 CommunityArea.visualizeCAs(iter_cnt=None,fname=project_name+"-CAs-iter-final.png")
                 CommunityArea.visualizePopDist(iter_cnt=None,fname=project_name+'-pop-distribution-final')
 

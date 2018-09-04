@@ -175,9 +175,10 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 #    CommunityArea._initializeCAfeatures(2010)
     model, tbCallback = DQN_model()
     model_name = re.match(".+(?=-v.+)", project_name)
-    model_filepath = "{}.model".format(model_name.group())
-    if os.path.exists(model_filepath):
-        model.load_weights(model_filepath)
+    if model_name is not None:
+        model_filepath = "{}.model".format(model_name.group())
+        if os.path.exists(model_filepath):
+            model.load_weights(model_filepath)
     dqn_learn = True
 
     print "# sampling"

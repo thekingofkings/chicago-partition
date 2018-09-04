@@ -13,15 +13,19 @@ import matplotlib.pyplot as plt
 
 class ParamSensitivity(object):
 
-    def __init__(self,project_name, task, max_m, min_m, plot):
+    def __init__(self,project_name, task, max_m, min_m, plot, f_sd=None, lmbda=None, T=None):
         self.project_name = project_name
         self.task = task
         self.max_m = max_m
         self.min_m = min_m
         self.plot = plot
+        self.f_sd = f_sd
+        self.lmbda = lmbda
+        self.T = T
         self.pkl_dir = 'data/community_states'
         self.start_time = None
         self.end_time = None
+        self.admin_boundary_m = 77
 
     def config_log(self):
         if not os.path.isdir('log'):
@@ -127,14 +131,21 @@ class ParamSensitivity(object):
             else:
                 del CommunityArea.CAs[ca_id]
 
+
+
+
+
     def init_communities(self, m):
-        if m == (self.max_m):
-            print "Initializing {} regions".format(self.max_m)
+        if m == (self.admin_boundary_m):
+            print "Initializing {} regions".format(self.admin_boundary_m)
             self.init_tracts()
             CommunityArea.createAllCAs(Tract.tracts)
 
         else:
-            print "Loading community structure from file:: m={}".format(m)
+            print "Initializing {} regions".format(self.admin_boundary_m)
+            self.init_tracts()
+            CommunityArea.createAllCAs(Tract.tracts)
+            print "Updating community structure from saved state:: m={}".format(m)
             self.load_pickle_tract_data(m)
             self.load_pickle_ca_data(m)
 
@@ -155,7 +166,7 @@ class ParamSensitivity(object):
         for i, m in enumerate(m_grid):
 
             # Estimate models here
-            if m == (self.max_m):
+            if m == (self.admin_boundary_m):
                 print "Initializing {} regions".format(self.max_m)
                 self.init_tracts()
                 CommunityArea.createAllCAs(Tract.tracts)
@@ -190,7 +201,7 @@ class ParamSensitivity(object):
         else:
             fname = self.project_name + "-naive-{}".format(m)
         naive_MCMC(fname, targetName=pred_target,
-                   lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                   lmbda=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
     def softmax_mcmc_run(self, m, iter=None):
         msg = "Beginning Softmax MCMC - {}.{}".format(m,iter)
@@ -205,7 +216,7 @@ class ParamSensitivity(object):
             fname = self.project_name + "-softmax-{}".format(m)
 
         MCMC_softmax_proposal(fname, targetName=pred_target,
-                              lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                              lmbda=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
     def dqn_mcmc_run(self, m, iter=None):
         msg = "Beginning DQN MCMC - {}.{}".format(m,iter)
@@ -221,7 +232,7 @@ class ParamSensitivity(object):
 
         q_learning(fname,
                    targetName=pred_target,
-                   lmbd=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                   lmbd=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
 
     def kmeans_run(self, m, iter=None):
@@ -314,7 +325,7 @@ class ParamSensitivity(object):
                 print prog
                 self.emit_log(prog)
 
-                try:
+                """try:
                     self.agglomerative_run(m, i)
                 except:
                     logging.error(prog,exc_info=True)
@@ -326,18 +337,18 @@ class ParamSensitivity(object):
                     self.spectral_run(m, i)
                 except:
                     logging.error(prog, exc_info=True)
-                """try:
+                try:
                     self.naive_mcmc_run(m, i)
                 except:
                     logging.error(prog, exc_info=True)
                 try:
                     self.softmax_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)
+                    logging.error(prog, exc_info=True)"""
                 try:
                     self.dqn_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)"""
+                    logging.error(prog, exc_info=True)
 
         self.end_time = dt.datetime.now()
         msg = "Total running time: {}".format(self.end_time - self.start_time)
@@ -433,7 +444,6 @@ class ParamSensitivityPlotter(object):
 
 
 
-
 if __name__ == '__main__':
 
 
@@ -444,5 +454,6 @@ if __name__ == '__main__':
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=76, min_m=60, plot=False)
-    house_price_sim.run_sim(n_iter=3, gen_ca=False)
+                                        task='house_price', max_m=77, min_m=61, plot=False,
+                                       lmbda = 0.000001, f_sd=0.008, T=.01)
+    house_price_sim.run_sim(n_iter=10, gen_ca=False)
