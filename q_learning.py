@@ -300,16 +300,17 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                 len(mae_series) / float(iter_cnt))
-                CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
-                CommunityArea.visualizePopDist(fname='final-pop-distribution')
+                #CommunityArea.visualizeCAs(fname="CAs-iter-final.png")
+                #CommunityArea.visualizePopDist(fname='final-pop-distribution')
                 mae, rmse, mre = leaveOneOut_evaluation(2011, targetName.replace('train', 'test'))
-                plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,lmbda=lmbd,
-                                    fname=project_name)
                 writeSimulationOutput(project_name=project_name,
                                       mae=mae,
                                       rmse=rmse,
                                       n_iter_conv=iter_cnt,
                                       accept_rate=len(mae_series) / float(iter_cnt))
+
+                #plotMcmcDiagnostics(iter_cnt, mae_index, mae_series, F_series, std_series,lmbda=lmbd,
+                #                    fname=project_name)
 
 
                 Tract.writePartition(fname=project_name + "-final-partition.txt")
@@ -325,7 +326,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 
 
 if __name__ == '__main__':
-    task = sys.argv[1]
+    #task = sys.argv[1]
+    task = 'house-price'
     if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
