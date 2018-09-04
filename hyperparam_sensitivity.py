@@ -454,6 +454,6 @@ if __name__ == '__main__':
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=77, min_m=61, plot=False,
+                                        task='house_price', max_m=77, min_m=40, plot=False,
                                        lmbda = 0.000001, f_sd=0.008, T=.01)
     house_price_sim.run_sim(n_iter=10, gen_ca=False)
