@@ -8,18 +8,24 @@ import pickle as pkl
 import os
 import logging
 import datetime as dt
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class ParamSensitivity(object):
 
-    def __init__(self,project_name, task, max_m, min_m, plot):
+    def __init__(self,project_name, task, max_m, min_m, plot, f_sd=None, lmbda=None, T=None):
         self.project_name = project_name
         self.task = task
         self.max_m = max_m
         self.min_m = min_m
         self.plot = plot
+        self.f_sd = f_sd
+        self.lmbda = lmbda
+        self.T = T
         self.pkl_dir = 'data/community_states'
         self.start_time = None
         self.end_time = None
+        self.admin_boundary_m = 77
 
     def config_log(self):
         if not os.path.isdir('log'):
@@ -125,14 +131,21 @@ class ParamSensitivity(object):
             else:
                 del CommunityArea.CAs[ca_id]
 
+
+
+
+
     def init_communities(self, m):
-        if m == (self.max_m):
-            print "Initializing {} regions".format(self.max_m)
+        if m == (self.admin_boundary_m):
+            print "Initializing {} regions".format(self.admin_boundary_m)
             self.init_tracts()
             CommunityArea.createAllCAs(Tract.tracts)
 
         else:
-            print "Loading community structure from file:: m={}".format(m)
+            print "Initializing {} regions".format(self.admin_boundary_m)
+            self.init_tracts()
+            CommunityArea.createAllCAs(Tract.tracts)
+            print "Updating community structure from saved state:: m={}".format(m)
             self.load_pickle_tract_data(m)
             self.load_pickle_ca_data(m)
 
@@ -153,7 +166,7 @@ class ParamSensitivity(object):
         for i, m in enumerate(m_grid):
 
             # Estimate models here
-            if m == (self.max_m):
+            if m == (self.admin_boundary_m):
                 print "Initializing {} regions".format(self.max_m)
                 self.init_tracts()
                 CommunityArea.createAllCAs(Tract.tracts)
@@ -188,7 +201,7 @@ class ParamSensitivity(object):
         else:
             fname = self.project_name + "-naive-{}".format(m)
         naive_MCMC(fname, targetName=pred_target,
-                   lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                   lmbda=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
     def softmax_mcmc_run(self, m, iter=None):
         msg = "Beginning Softmax MCMC - {}.{}".format(m,iter)
@@ -203,7 +216,7 @@ class ParamSensitivity(object):
             fname = self.project_name + "-softmax-{}".format(m)
 
         MCMC_softmax_proposal(fname, targetName=pred_target,
-                              lmbda=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                              lmbda=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
     def dqn_mcmc_run(self, m, iter=None):
         msg = "Beginning DQN MCMC - {}.{}".format(m,iter)
@@ -219,7 +232,7 @@ class ParamSensitivity(object):
 
         q_learning(fname,
                    targetName=pred_target,
-                   lmbd=0.005, f_sd=3, Tt=0.1, init_ca=False)
+                   lmbd=self.lmbda, f_sd=self.f_sd, Tt=self.T, init_ca=False)
 
 
     def kmeans_run(self, m, iter=None):
@@ -312,7 +325,7 @@ class ParamSensitivity(object):
                 print prog
                 self.emit_log(prog)
 
-                try:
+                """try:
                     self.agglomerative_run(m, i)
                 except:
                     logging.error(prog,exc_info=True)
@@ -331,7 +344,7 @@ class ParamSensitivity(object):
                 try:
                     self.softmax_mcmc_run(m, i)
                 except:
-                    logging.error(prog, exc_info=True)
+                    logging.error(prog, exc_info=True)"""
                 try:
                     self.dqn_mcmc_run(m, i)
                 except:
@@ -340,6 +353,95 @@ class ParamSensitivity(object):
         self.end_time = dt.datetime.now()
         msg = "Total running time: {}".format(self.end_time - self.start_time)
         self.emit_log(msg)
+
+
+class ParamSensitivityPlotter(object):
+    def __init__(self, project_name, max_m, min_m, task, n_iter, metric, mod_analysis_list=None):
+        self.project_name = project_name
+        self.max_m = max_m
+        self.min_m = min_m
+        self.task = task
+        self.n_iter = n_iter
+        self.metric = metric
+        self.models = ['naive', 'softmax',
+                       'dqn', 'kmeans', 'agglomerative', 'spectral']
+        self.model_labels ={'naive': 'Naive',
+                            'softmax': 'Softmax',
+                            'dqn': 'DQN',
+                            'kmeans': 'K-means',
+                            'agglomerative': 'Agglomerative',
+                            'spectral': 'Spectral'}
+        if mod_analysis_list:
+            self.mod_analysis_list = mod_analysis_list
+        else:
+            self.mod_analysis_list = self.models
+
+
+    def get_task_str(self):
+        if self.task == 'house_price':
+            return 'houseprice'
+        elif self.task == 'crime':
+            return 'crime'
+        else:
+            raise ValueError('task: must be house_price or crime')
+
+    def get_file_name(self, model, m, i):
+        task_str = self.get_task_str()
+        fname = "output/sensitivity-study-{}-{}-{}.{}-final-output.txt".format(task_str,
+                                                                        model, m, i)
+        return fname
+
+    def get_results(self):
+        results = list()
+
+        for mod in self.models:
+            for m in range(self.min_m, self.max_m+1):
+                for i in range(1,self.n_iter+1):
+                    fname = self.get_file_name(mod,m,i)
+                    sim_result = self.get_final_output_file(fname)
+                    row = [mod, m, i, sim_result]
+                    results.append(row)
+
+        results_df = pd.DataFrame(results, columns = ['model','m','i',self.metric])
+        results_df.set_index(['model', 'm', 'i'], inplace=True)
+        return results_df
+
+    def get_final_output_file(self, fname):
+        try:
+            with open(fname, 'r') as f:
+                for line in f:
+                    line_split = line.split(":")
+                    if line_split[0].strip() == self.metric:
+                        result = float(line_split[1].strip())
+                        break
+                    else:
+                        result = np.nan
+            return result
+        except IOError:
+            result = np.nan
+            return result
+
+    def gen_plot(self):
+        results = self.get_results()
+        means = results.groupby(by=['model','m']).mean()
+        std = results.groupby(by=['model','m']).std()
+
+        print means
+        print std
+
+        plt.figure(figsize=(12,8))
+        for mod in self.models:
+            if mod in self.mod_analysis_list:
+                arr = means.loc[mod]
+                plt.plot(arr, label=self.model_labels[mod], linewidth=2.5, linestyle='-.')
+
+        plt.xlim(self.max_m, self.min_m)
+        plt.legend(loc='best')
+        plt.title('Model Prediction Error by Number of Regions', fontsize=18)
+        plt.xlabel('Number of Regions (m)', fontsize=15)
+        plt.ylabel('Prediction Error ({})'.format(self.metric), fontsize=15)
+        plt.savefig('plots/sensitivity-study-{}.pdf'.format(self.metric))
+
 
 
 if __name__ == '__main__':
@@ -352,5 +454,6 @@ if __name__ == '__main__':
 
 
     house_price_sim = ParamSensitivity(project_name='sensitivity-study-houseprice',
-                                        task='house_price', max_m=76, min_m=20, plot=False)
+                                        task='house_price', max_m=77, min_m=40, plot=False,
+                                       lmbda = 0.000001, f_sd=0.008, T=.01)
     house_price_sim.run_sim(n_iter=10, gen_ca=False)

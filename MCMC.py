@@ -15,6 +15,8 @@ import random
 import numpy as np
 from shapely.ops import cascaded_union
 from mcmcSummaries import plotMcmcDiagnostics, writeSimulationOutput
+import logging
+
 
 
 def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = True):
@@ -36,7 +38,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
     featureName = CommunityArea.featureNames
     ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
-    M = 50
+    M = 500
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
@@ -266,9 +268,12 @@ def mcmcSamplerUniform(sample_func,
 
             if isConvergent(epsilon,f_series):
                 # when mae converges
-                print "converge in {} samples with {} acceptances \
+                msg = "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
                                                       len(mae_series) / float(iter_cnt))
+                print msg
+                logging.info(msg)
+                logging.info('Population standard deviation: %s', pop_sd_1)
                 CommunityArea.visualizeCAs(iter_cnt=None,fname=project_name+"-CAs-iter-final.png")
                 CommunityArea.visualizePopDist(iter_cnt=None,fname=project_name+'-pop-distribution-final')
 
@@ -546,24 +551,24 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 if __name__ == '__main__':
 
-    for i in range(1,101):
+    for i in range(1, 11):
         version = "v{}".format(i)
         print "-----{}-----".format(version)
 
         # Crime
         naive_MCMC('crime-naive-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=0.1)
         MCMC_softmax_proposal('crime-softmax-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=0.1)
 
         # House Prices
         naive_MCMC('house-price-naive-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
 
         MCMC_softmax_proposal('house-price-softmax-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
  
