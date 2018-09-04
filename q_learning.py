@@ -32,16 +32,16 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=0.015, Tt=10, init_ca =
         iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
     print "# initialize {}".format(project_name)
     random.seed(0)
-    epsilon = {"acc_len": 100, "prev_len": 50, "f_sd": f_sd}
     if init_ca:
         Tract.createAllTracts()
         CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
 
-    M = 50
+    M = 500
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
+    epsilon = {"acc_len": M, "prev_len": 200, "f_sd": f_sd}
     mae1, _, _, errors, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_std1 = np.std(CommunityArea.population)
     iter_cnt = 0

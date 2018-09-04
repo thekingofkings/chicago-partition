@@ -28,7 +28,6 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
             - prev_len: last n (accepted) samples to examine for convergence
             - f_sd: standard deviation of prev_len
     """
-    epsilon = {"acc_len":100,"prev_len":50,"f_sd":f_sd}
     random.seed(0)
     if init_ca:
         Tract.createAllTracts()
@@ -36,9 +35,10 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=1.5, Tt=10, init_ca = T
     featureName = CommunityArea.featureNames
     ##singleFeatureForStudy = CommunityArea.singleFeature
     #targetName = 'total' # train_average_house_price
-    M = 50
+    M = 100
     T = Tt
     lmbda = lmbd
+    epsilon = {"acc_len": M,"prev_len":50,"f_sd":f_sd}
     CA_maxsize = 30
     # Plot original community population distribution
     #CommunityArea.visualizePopDist(iter_cnt=0,fname=project_name+'-orig-pop-distribution')
@@ -546,24 +546,24 @@ def MCMC_softmax_proposal(project_name, targetName='total', lmbda=0.75, f_sd=1.5
 
 if __name__ == '__main__':
 
-    for i in range(1,101):
+    for i in range(1, 11):
         version = "v{}".format(i)
         print "-----{}-----".format(version)
 
         # Crime
         naive_MCMC('crime-naive-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=0.1)
         MCMC_softmax_proposal('crime-softmax-{}'.format(version),
                    targetName='total',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=0.1)
 
         # House Prices
         naive_MCMC('house-price-naive-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
 
         MCMC_softmax_proposal('house-price-softmax-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.005, f_sd=3, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
  
