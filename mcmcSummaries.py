@@ -167,7 +167,7 @@ if __name__ == '__main__':
     print "Simulation Summaries:"
     getSimulationSummaryStats('crime-naive',n_sim=10)
     getSimulationSummaryStats('crime-softmax', n_sim=10)
-    getSimulationSummaryStats('crime-q-learning-sampler', n_sim=10)
+    getSimulationSummaryStats('crime-q-learning-T1p2', n_sim=10)
     print ""
     print "----TASK: House Price Prediction----\n"
     print "------------"
