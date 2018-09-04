@@ -326,8 +326,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 
 
 if __name__ == '__main__':
-    #task = sys.argv[1]
-    task = 'house-price'
+    task = sys.argv[1]
     if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
