@@ -20,7 +20,7 @@ import random
 import numpy as np
 import math
 import os
-from MCMC import leaveOneOut_evaluation, get_f,isConvergent
+from MCMC import leaveOneOut_evaluation, get_f, isConvergent
 from keras.layers import Input, Embedding, Dense, concatenate, Flatten
 from keras.models import Model 
 from keras.callbacks import TensorBoard
@@ -38,11 +38,11 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=0.015, Tt=10, init_ca =
         CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
 
-    M = 500
+    M = 200
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
-    epsilon = {"acc_len": M, "prev_len": 200, "f_sd": f_sd}
+    epsilon = {"acc_len": M, "prev_len": 100, "f_sd": f_sd}
     mae1, _, _, errors, _ = NB_regression_training(CommunityArea.features, featureName, targetName)
     pop_std1 = np.std(CommunityArea.population)
     iter_cnt = 0
@@ -216,8 +216,9 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
                 try:
                     gain = 1 / (1 + math.exp(- F_next + F_cur))
                 except OverflowError:
+                    print "overflow error"
                     # More numerically stable as F_next + F_cur --> -inf?
-                    gain = math.exp(F_next + F_cur) / (1 + math.exp(F_next + F_cur))
+                    gain = math.exp(F_next - F_cur) / (1 + math.exp(F_next - F_cur))
                 partitions.append(state)
                 action_tracts.append(Tract.getTractPosID(t))
                 action_toCAs.append(new_caid-1)
@@ -245,7 +246,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
             dqn_learn = False
         
         j = 0
-        gain_highest = 0.45
+        gain_threshold = 0.4
         action_tract = None
         action_ca = None
         gain_preds = []
@@ -258,8 +259,8 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
                                          'action_target_tract': np.array(Tract.getTractPosID(t))[None],
                                          'action_new_CA': np.array(new_caid-1)[None]})
             gain_preds.append(gain_pred)
-            if gain_pred > gain_highest:
-                gain_highest = gain_pred
+            if gain_pred > gain_threshold:
+                gain_threshold = gain_pred
                 action_tract = t
                 action_ca = new_caid
             
@@ -331,12 +332,12 @@ if __name__ == '__main__':
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     for i in range(10):
         if task == 'crime':
-            q_learning('crime-q-learning-sampler-v{}'.format(i+1),
+            q_learning('crime-q-learning-T1p2-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.03, f_sd=0.008, Tt=0.1)
+                   lmbd=0.03, f_sd=0.015, Tt=1)
         elif task == "house-price":
             q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
-                   lmbd=0.0004, f_sd=0.008, Tt=0.1)
+                   lmbd=0.0004, f_sd=0.008, Tt=10)
         else:
             print "Enter task: crime | house-price"

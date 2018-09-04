@@ -84,7 +84,6 @@ def get_gamma(f_current,f_proposed,symmetric=True,log=True,q_proposed_given_curr
     :return: value for gamma, or probability of accepting proposed state
     """
     if symmetric:
-
         if log:
             alpha = f_proposed - f_current
             gamma = np.min((0,alpha))
@@ -92,7 +91,6 @@ def get_gamma(f_current,f_proposed,symmetric=True,log=True,q_proposed_given_curr
             alpha = f_proposed/f_current
             gamma = np.min((1,alpha))
     else:
-
         if log:
             alpha = f_proposed - f_current + q_current_given_proposed - q_proposed_given_current
             gamma = np.min((0,alpha))
@@ -298,7 +296,7 @@ def mcmcSamplerUniform(sample_func,
                                 std_array=sd_series,
                                 f_array = f_series,
                                 lmbda=lmbda,
-                                fname=project_name+'-mcmc-diagnostics-progess')
+                                fname=project_name+'-mcmc-diagnostics-progess-{}'.format(iter_cnt))
 
     if cnt > M:
         print "Cannot find better flip within {} steps".format(cnt)
@@ -440,7 +438,7 @@ def mcmcSamplerSoftmax(project_name,targetName):
                                 std_array=sd_series,
                                 f_array=f_series,
                                 lmbda=lmbda,
-                                fname=project_name + '-mcmc-diagnostics-progess')
+                                fname=project_name + '-mcmc-diagnostics-progess-{}'.format(iter_cnt))
     if cnt > M:
         print "Cannot find better flip within {} steps".format(cnt)
 
@@ -566,17 +564,17 @@ if __name__ == '__main__':
         # Crime
         naive_MCMC('crime-naive-{}'.format(version),
                    targetName='total',
-                   lmbda=0.03, f_sd=0.008, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=1)
         MCMC_softmax_proposal('crime-softmax-{}'.format(version),
                    targetName='total',
-                   lmbda=0.03, f_sd=0.008, Tt=0.1)
+                   lmbda=0.03, f_sd=0.008, Tt=1)
 
         # House Prices
         naive_MCMC('house-price-naive-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=1)
 
         MCMC_softmax_proposal('house-price-softmax-{}'.format(version),
                    targetName='train_average_house_price',
-                   lmbda=0.0004, f_sd=0.008, Tt=0.1)
+                   lmbda=0.0004, f_sd=0.008, Tt=1)
  
