@@ -119,7 +119,13 @@ def softmax(x,log=False):
         exp_X = np.exp(x_centered)
         return exp_X / np.sum(exp_X)
 
-def isConvergent(epsilon, series):
+
+
+def isConvergent(epsilon, series, iter=None, max_iteration=None):
+    if iter and max_iteration:
+        if iter > max_iteration:
+            return True
+
     if len(series) > epsilon['acc_len']:
         stdQs = np.std(series[-epsilon["prev_len"]:])
         avgQs = np.abs(np.mean(series[-epsilon["prev_len"]:]))

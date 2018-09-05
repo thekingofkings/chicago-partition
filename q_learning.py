@@ -30,14 +30,14 @@ import sys
 
 def initialize(project_name, targetName, lmbd=0.75, f_sd=0.015, Tt=10, init_ca = True):
     global featureName, M, T, lmbda, CA_maxsize, mae1, mae_series, mae_index, \
-        iter_cnt, F_series, pop_std1, std_series, cnt, epsilon
+        iter_cnt, F_series, pop_std1, std_series, cnt, epsilon, max_iter
     print "# initialize {}".format(project_name)
     random.seed(0)
     if init_ca:
         Tract.createAllTracts()
         CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
-
+    max_iter = 3000
     M = 200
     T = Tt
     lmbda = lmbd
@@ -296,7 +296,7 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
             mae1, pop_std1 = mae2, pop_std2
             mae_index.append(iter_cnt)
 
-            if isConvergent(epsilon, F_series):
+            if isConvergent(epsilon, F_series, iter_cnt, max_iter):
                 # when mae converges
                 print "converge in {} samples with {} acceptances \
                     sample conversion rate {}".format(iter_cnt, len(mae_series),
@@ -327,17 +327,16 @@ def q_learning(project_name, targetName='total', lmbd=0.75, f_sd=0.015, Tt=10, i
 
 
 if __name__ == '__main__':
-    #task = sys.argv[1]
-    task = 'house-price'
+    task = sys.argv[1]
     if len(sys.argv) > 2 and sys.argv[2] == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    for i in range(10):
+    for i in range(1):
         if task == 'crime':
-            q_learning('crime-q-learning-T1p2-v{}'.format(i+1),
+            q_learning('crime-q-learning-maxiter-test-v{}'.format(i+1),
                    targetName='total',
-                   lmbd=0.03, f_sd=0.015, Tt=1)
+                   lmbd=0.0004, f_sd=0.005, Tt=1)
         elif task == "house-price":
             q_learning('house-price-q-learning-sampler-v{}'.format(i+1),
                    targetName='train_average_house_price',
