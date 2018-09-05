@@ -38,7 +38,7 @@ def initialize(project_name, targetName, lmbd=0.75, f_sd=0.015, Tt=10, init_ca =
         CommunityArea.createAllCAs(Tract.tracts)
     featureName = CommunityArea.featureNames
     max_iter = 3000
-    M = 200
+    M = 500
     T = Tt
     lmbda = lmbd
     CA_maxsize = 30
